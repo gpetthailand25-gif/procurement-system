@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Innova Food & Bake — ระบบภายใน</title>
+<style>
+  :root{
+    --ink:#1a1d29;
+    --ink-soft:#4a5270;
+    --paper:#f5f7fb;
+    --pr:#e8590c;
+    --pr-dark:#b8420a;
+    --pr-soft:#fff0e4;
+    --rd:#0a7c5c;
+    --rd-dark:#065c44;
+    --rd-soft:#e0f4ee;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;font-family:"Noto Sans Thai","IBM Plex Sans Thai","Inter",-apple-system,sans-serif;}
+  body{
+    min-height:100vh;
+    background:var(--paper);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    padding:32px 20px;
+  }
+
+  .header{text-align:center;margin-bottom:48px;}
+  .logo-badge{
+    display:inline-flex;align-items:center;gap:10px;
+    background:var(--ink);color:#fff;
+    padding:10px 20px;border-radius:50px;
+    font-size:13px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;
+    margin-bottom:20px;
+  }
+  .logo-dot{width:8px;height:8px;border-radius:50%;background:#fff;opacity:.5;}
+  .header h1{
+    font-size:clamp(26px,5vw,38px);font-weight:800;color:var(--ink);
+    letter-spacing:-.02em;line-height:1.2;margin-bottom:10px;
+  }
+  .header h1 span{color:var(--pr);}
+  .header p{font-size:15px;color:var(--ink-soft);line-height:1.6;}
+
+  .cards{
+    display:grid;grid-template-columns:1fr 1fr;gap:20px;
+    max-width:680px;width:100%;
+  }
+  .card{
+    background:#fff;border-radius:16px;padding:32px 28px;
+    text-decoration:none;color:inherit;
+    border:2px solid transparent;
+    box-shadow:0 4px 20px rgba(0,0,0,.07);
+    transition:transform .18s,box-shadow .18s,border-color .18s;
+    display:flex;flex-direction:column;align-items:flex-start;gap:14px;
+    position:relative;overflow:hidden;
+  }
+  .card::before{
+    content:"";position:absolute;inset:0;
+    opacity:0;transition:opacity .18s;
+  }
+  .card:hover{transform:translateY(-4px);box-shadow:0 10px 32px rgba(0,0,0,.12);}
+  .card.pr:hover{border-color:var(--pr);}
+  .card.pr::before{background:linear-gradient(135deg,var(--pr-soft),transparent);}
+  .card.rd:hover{border-color:var(--rd);}
+  .card.rd::before{background:linear-gradient(135deg,var(--rd-soft),transparent);}
+  .card:hover::before{opacity:1;}
+
+  .card-icon{
+    width:56px;height:56px;border-radius:14px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:26px;position:relative;z-index:1;
+  }
+  .card.pr .card-icon{background:var(--pr-soft);}
+  .card.rd .card-icon{background:var(--rd-soft);}
+
+  .card-body{position:relative;z-index:1;width:100%;}
+  .card-label{
+    font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+    margin-bottom:6px;
+  }
+  .card.pr .card-label{color:var(--pr);}
+  .card.rd .card-label{color:var(--rd);}
+  .card-title{font-size:20px;font-weight:800;color:var(--ink);margin-bottom:6px;line-height:1.2;}
+  .card-desc{font-size:13.5px;color:var(--ink-soft);line-height:1.6;}
+
+  .card-arrow{
+    margin-top:18px;display:inline-flex;align-items:center;gap:6px;
+    font-size:13px;font-weight:700;
+    position:relative;z-index:1;
+  }
+  .card.pr .card-arrow{color:var(--pr);}
+  .card.rd .card-arrow{color:var(--rd);}
+
+  .footer{
+    margin-top:48px;font-size:12px;color:#aab0c0;text-align:center;line-height:1.8;
+  }
+
+  @media(max-width:560px){
+    .cards{grid-template-columns:1fr;}
+    .header{margin-bottom:32px;}
+    .card{padding:24px 20px;}
+    .footer{margin-top:36px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo-badge">
+    <span class="logo-dot"></span>
+    Innova Food &amp; Bake
+    <span class="logo-dot"></span>
+  </div>
+  <h1>ระบบ<span>จัดการ</span>ภายใน</h1>
+  <p>เลือกระบบที่ต้องการใช้งาน</p>
+</div>
+
+<div class="cards">
+
+  <a class="card pr" href="index.html">
+    <div class="card-icon">🛒</div>
+    <div class="card-body">
+      <div class="card-label">PR System</div>
+      <div class="card-title">ขอซื้อวัสดุอุปกรณ์</div>
+      <div class="card-desc">สร้างใบขอซื้อ ติดตามสถานะ และจัดการการสั่งซื้อวัสดุอุปกรณ์ในโรงงาน</div>
+      <div class="card-arrow">เข้าสู่ระบบ PR <span>→</span></div>
+    </div>
+  </a>
+
+  <a class="card rd" href="rd_request.html">
+    <div class="card-icon">🧪</div>
+    <div class="card-body">
+      <div class="card-label">R&amp;D System</div>
+      <div class="card-title">ขอตัวอย่างทดสอบ</div>
+      <div class="card-desc">ส่งคำขอตัวอย่างวัตถุดิบสำหรับทดสอบสูตร วิจัย และพัฒนาผลิตภัณฑ์ใหม่</div>
+      <div class="card-arrow">เข้าสู่ระบบ R&amp;D <span>→</span></div>
+    </div>
+  </a>
+
+</div>
+
+<div class="footer">
+  บริษัท อินโนว่า ฟู้ด แอนด์ เบค จำกัด<br>
+  ระบบสำหรับใช้งานภายในองค์กรเท่านั้น
+</div>
+
+</body>
+</html>
