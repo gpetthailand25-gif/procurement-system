@@ -1409,6 +1409,110 @@
     toast("ส่งออกทะเบียนแล้ว");
   };
 
+  // ---------- PDF export (per-PR, via browser print — guarantees correct Thai rendering) ----------
+  function printPrDocument(r){
+    var st = STATUS[r.status] || STATUS.new;
+
+    var itemRows = (r.items||[]).map(function(it, idx){
+      var actualQtyStr = (it.actualQty !== "" && it.actualQty != null) ? escapeHtml(it.actualQty) : "-";
+      var actualAmtStr = (it.actualAmount !== "" && it.actualAmount != null) ? fmtMoney(it.actualAmount) : "-";
+      return (
+        '<tr>' +
+          '<td>' + (idx+1) + '</td>' +
+          '<td>' + escapeHtml(it.name) + '</td>' +
+          '<td>' + (it.department ? escapeHtml(it.department) : '-') + '</td>' +
+          '<td class="num">' + escapeHtml(it.qty) + '</td>' +
+          '<td>' + (it.unit ? escapeHtml(it.unit) : '-') + '</td>' +
+          '<td class="num">' + fmtMoney(it.amount) + '</td>' +
+          '<td class="num">' + actualQtyStr + '</td>' +
+          '<td class="num">' + actualAmtStr + '</td>' +
+        '</tr>'
+      );
+    }).join("");
+
+    var approvalImgsHtml = (r.approvalImgs||[]).map(function(src){
+      return '<img src="' + src + '">';
+    }).join("");
+    var receiptImgsHtml = (r.receiptImgs||[]).map(function(src){
+      return '<img src="' + src + '">';
+    }).join("");
+
+    var evidenceBlock = "";
+    if(approvalImgsHtml || receiptImgsHtml){
+      evidenceBlock =
+        '<div class="section-title">หลักฐาน</div>' +
+        (approvalImgsHtml ? '<div class="ev-label">หลักฐานการอนุมัติให้สั่งซื้อ</div><div class="ev-row">' + approvalImgsHtml + '</div>' : '') +
+        (receiptImgsHtml ? '<div class="ev-label">หลักฐานการรับสินค้า</div><div class="ev-row">' + receiptImgsHtml + '</div>' : '');
+    }
+
+    var html =
+      '<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8"><title>' + r.id + '</title>' +
+      '<style>' +
+      'body{font-family:"Noto Sans Thai","Sarabun",sans-serif;color:#1a1d29;margin:0;padding:32px 36px;font-size:13px;}' +
+      '.company{font-size:19px;font-weight:800;text-align:center;margin-bottom:2px;}' +
+      '.doc-title{font-size:15px;font-weight:700;text-align:center;color:#444;margin-bottom:18px;}' +
+      'hr{border:none;border-top:2px solid #1a1d29;margin-bottom:18px;}' +
+      '.meta-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px 18px;margin-bottom:16px;font-size:12.5px;}' +
+      '.meta-grid .k{color:#666;font-size:10.5px;text-transform:uppercase;letter-spacing:.03em;}' +
+      '.meta-grid .v{font-weight:600;}' +
+      '.section-title{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;color:#0f7a8c;margin:18px 0 8px;border-bottom:1px solid #ccc;padding-bottom:4px;}' +
+      'table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:6px;}' +
+      'th{background:#f0f0ee;text-align:left;padding:6px 8px;border:1px solid #ccc;font-size:11px;}' +
+      'td{padding:6px 8px;border:1px solid #ccc;}' +
+      'td.num, th.num{text-align:right;}' +
+      '.totals{display:flex;justify-content:flex-end;gap:24px;font-size:13px;font-weight:700;margin-top:6px;}' +
+      '.ev-label{font-size:11px;color:#666;margin-top:8px;margin-bottom:4px;}' +
+      '.ev-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;}' +
+      '.ev-row img{width:110px;height:110px;object-fit:cover;border:1px solid #ccc;border-radius:3px;}' +
+      '.sign-row{display:flex;justify-content:space-between;margin-top:56px;}' +
+      '.sign-box{width:45%;text-align:center;font-size:12px;}' +
+      '.sign-line{border-top:1px solid #333;margin-bottom:6px;padding-top:36px;}' +
+      '.note-box{font-size:12.5px;margin-bottom:14px;}' +
+      '@media print{ body{padding:14mm 16mm;} }' +
+      '</style></head><body>' +
+      '<div class="company">บริษัท อินโนว่า ฟู้ด แอนด์ เบค จำกัด</div>' +
+      '<div class="doc-title">ใบขอซื้อวัสดุอุปกรณ์ — ' + escapeHtml(r.id) + '</div>' +
+      '<hr>' +
+      '<div class="meta-grid">' +
+        '<div><div class="k">ชื่อใบขอซื้อ</div><div class="v">' + escapeHtml(r.title||"-") + '</div></div>' +
+        '<div><div class="k">สถานะ</div><div class="v">' + st.label + '</div></div>' +
+        '<div><div class="k">วันที่สร้าง</div><div class="v">' + fmtDateTime(r.createdAt) + '</div></div>' +
+        '<div><div class="k">ผู้ขอซื้อ</div><div class="v">' + escapeHtml(r.requester||"-") + '</div></div>' +
+        '<div><div class="k">วันที่ต้องการใช้</div><div class="v">' + fmtDate(r.needDate) + '</div></div>' +
+        '<div><div class="k">ใช้ที่ไหน</div><div class="v">' + escapeHtml(r.location||"-") + '</div></div>' +
+        '<div><div class="k">ผู้รับผิดชอบ</div><div class="v">' + escapeHtml(r.owner||"-") + '</div></div>' +
+      '</div>' +
+      (r.note ? '<div class="note-box"><span class="k" style="color:#666;font-size:10.5px;">หมายเหตุ:</span> ' + escapeHtml(r.note) + '</div>' : '') +
+      '<div class="section-title">รายการสั่งซื้อ</div>' +
+      '<table><thead><tr>' +
+        '<th>#</th><th>รายการ</th><th>แผนก</th><th class="num">จำนวนที่ขอ</th><th>หน่วย</th>' +
+        '<th class="num">เงินที่ขอ</th><th class="num">สั่งซื้อจริง</th><th class="num">เงินจริง</th>' +
+      '</tr></thead><tbody>' + itemRows + '</tbody></table>' +
+      '<div class="totals">' +
+        '<span>ยอดที่ขอ: ' + fmtMoney(requestTotal(r)) + '</span>' +
+        '<span>ยอดจริง: ' + fmtMoney(actualTotal(r)) + '</span>' +
+      '</div>' +
+      evidenceBlock +
+      '<div class="sign-row">' +
+        '<div class="sign-box"><div class="sign-line"></div>ผู้ขอซื้อ</div>' +
+        '<div class="sign-box"><div class="sign-line"></div>ผู้อนุมัติ (ฝ่ายจัดซื้อ)</div>' +
+      '</div>' +
+      '</body></html>';
+
+    var printWin = window.open("", "_blank");
+    if(!printWin){
+      toast("เบราว์เซอร์บล็อกหน้าต่างป๊อปอัป กรุณาอนุญาตป๊อปอัปสำหรับเว็บนี้แล้วลองใหม่");
+      return;
+    }
+    printWin.document.open();
+    printWin.document.write(html);
+    printWin.document.close();
+    setTimeout(function(){
+      printWin.focus();
+      printWin.print();
+    }, 350);
+  }
+
   // ---------- detail modal ----------
   function openDetailModal(id){
     state.detailTargetId = id;
@@ -1565,11 +1669,13 @@
     var footHtml = "";
     if(isPurchasing){
       footHtml =
+        '<button class="btn-ghost" id="detailExportPdfBtn">🖨️ พิมพ์ / บันทึก PDF</button>' +
         '<button class="btn-ghost" id="detailAttachReceiptBtn">แนบหลักฐานการรับสินค้า</button>' +
         '<button class="btn-ghost" id="detailEditDirectBtn">แก้ไขข้อมูล</button>' +
         '<button class="btn-primary" id="closeDetailFootBtn">ปิด</button>';
     }else{
       footHtml =
+        '<button class="btn-ghost" id="detailExportPdfBtn">🖨️ พิมพ์ / บันทึก PDF</button>' +
         (r.pendingEdit ? '' : '<button class="btn-ghost" id="detailRequestEditBtn">ขอแก้ไข</button>') +
         '<button class="btn-primary" id="closeDetailFootBtn">ปิด</button>';
     }
@@ -1624,6 +1730,9 @@
 
     var attachBtn = document.getElementById("detailAttachReceiptBtn");
     if(attachBtn) attachBtn.onclick = function(){ openReceiptModal(r.id); };
+
+    var exportPdfBtn = document.getElementById("detailExportPdfBtn");
+    if(exportPdfBtn) exportPdfBtn.onclick = function(){ printPrDocument(r); };
 
     var editDirectBtn = document.getElementById("detailEditDirectBtn");
     if(editDirectBtn) editDirectBtn.onclick = function(){ closeDetailModal(); openFormModal("edit-direct", r.id); };
