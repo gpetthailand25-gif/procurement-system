@@ -24,7 +24,6 @@
     display:flex;flex-direction:column;align-items:center;justify-content:center;
     padding:32px 20px;
   }
-
   .header{text-align:center;margin-bottom:48px;}
   .logo-badge{
     display:inline-flex;align-items:center;gap:10px;
@@ -40,7 +39,6 @@
   }
   .header h1 span{color:var(--pr);}
   .header p{font-size:15px;color:var(--ink-soft);line-height:1.6;}
-
   .cards{
     display:grid;grid-template-columns:1fr 1fr;gap:20px;
     max-width:680px;width:100%;
@@ -64,7 +62,6 @@
   .card.rd:hover{border-color:var(--rd);}
   .card.rd::before{background:linear-gradient(135deg,var(--rd-soft),transparent);}
   .card:hover::before{opacity:1;}
-
   .card-icon{
     width:56px;height:56px;border-radius:14px;
     display:flex;align-items:center;justify-content:center;
@@ -72,7 +69,6 @@
   }
   .card.pr .card-icon{background:var(--pr-soft);}
   .card.rd .card-icon{background:var(--rd-soft);}
-
   .card-body{position:relative;z-index:1;width:100%;}
   .card-label{
     font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
@@ -82,7 +78,6 @@
   .card.rd .card-label{color:var(--rd);}
   .card-title{font-size:20px;font-weight:800;color:var(--ink);margin-bottom:6px;line-height:1.2;}
   .card-desc{font-size:13.5px;color:var(--ink-soft);line-height:1.6;}
-
   .card-arrow{
     margin-top:18px;display:inline-flex;align-items:center;gap:6px;
     font-size:13px;font-weight:700;
@@ -90,11 +85,9 @@
   }
   .card.pr .card-arrow{color:var(--pr);}
   .card.rd .card-arrow{color:var(--rd);}
-
   .footer{
     margin-top:48px;font-size:12px;color:#aab0c0;text-align:center;line-height:1.8;
   }
-
   @media(max-width:560px){
     .cards{grid-template-columns:1fr;}
     .header{margin-bottom:32px;}
