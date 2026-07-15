@@ -39,6 +39,9 @@
     --pending:#9333ea;
     --pending-dark:#7016c2;
     --pending-soft:#f5e9fd;
+    --cancel:#6b7280;
+    --cancel-dark:#43484f;
+    --cancel-soft:#e8eaed;
     --radius:6px;
     font-family: "Noto Sans Thai", "IBM Plex Sans Thai", "Inter", -apple-system, sans-serif;
   }
@@ -127,6 +130,8 @@
   .stat.is-ship .n{color:var(--ship-dark);}
   .stat.is-ok{background:var(--ok-soft);border-top-color:var(--ok);}
   .stat.is-ok .n{color:var(--ok-dark);}
+  .stat.is-cancel{background:var(--cancel-soft);border-top-color:var(--cancel);}
+  .stat.is-cancel .n{color:var(--cancel-dark);}
   .stat.is-money{background:var(--money-soft);border-top-color:var(--money);}
   .stat.is-money .n{color:var(--money-dark);font-size:20px;}
   .stat.is-money .l{color:var(--money-dark);opacity:.9;}
@@ -183,6 +188,7 @@
   .card.st-processing{border-left-color:var(--wait);}
   .card.st-shipping{border-left-color:var(--ship);}
   .card.st-done{border-left-color:var(--ok);}
+  .card.st-cancelled{border-left-color:var(--cancel);}
 
   .card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;}
   .card-id{font-size:12px;color:var(--ink-faint);font-weight:800;letter-spacing:.03em;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
@@ -199,7 +205,18 @@
   .badge.st-processing{background:var(--wait);}
   .badge.st-shipping{background:var(--ship);}
   .badge.st-done{background:var(--ok);}
+  .badge.st-cancelled{background:var(--cancel);}
   .badge.pending{background:var(--pending);}
+  .badge-sm{
+    display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:800;
+    padding:2px 9px;border-radius:20px;letter-spacing:.01em;white-space:nowrap;color:#fff;
+  }
+  .badge-sm.st-new{background:var(--new);}
+  .badge-sm.st-processing{background:var(--wait);}
+  .badge-sm.st-shipping{background:var(--ship);}
+  .badge-sm.st-done{background:var(--ok);}
+  .badge-sm.st-cancelled{background:var(--cancel);}
+  .status-select-sm{font-size:12.5px;padding:6px 8px;font-weight:700;border-radius:var(--radius);border:1.5px solid var(--line-strong);background:var(--panel);font-family:inherit;}
   .dept-tag{
     display:inline-block;font-size:11px;font-weight:800;padding:3px 9px;border-radius:10px;
     background:var(--steel);color:#fff;margin-right:5px;white-space:nowrap;
@@ -424,6 +441,7 @@
       <span class="chip" data-filter="processing">อยู่ระหว่างดำเนินการ</span>
       <span class="chip" data-filter="shipping">อยู่ระหว่างจัดส่ง</span>
       <span class="chip" data-filter="done">รับสินค้าเรียบร้อย</span>
+      <span class="chip" data-filter="cancelled">ยกเลิก</span>
     </div>
   </div>
 
@@ -565,6 +583,52 @@
   </div>
 </div>
 
+<!-- Registry entry edit modal -->
+<div class="overlay" id="registryFormOverlay">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-head">
+      <div>
+        <h2>แก้ไขรายการในทะเบียน</h2>
+        <div class="modal-sub">แก้ไขข้อมูลวัสดุอุปกรณ์ในทะเบียน</div>
+      </div>
+      <button class="modal-close" id="closeRegistryFormBtn" aria-label="ปิด">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <label for="regEditName">ชื่อรายการ</label>
+        <input type="text" id="regEditName" placeholder="ชื่อวัสดุ/อุปกรณ์">
+      </div>
+      <div class="form-row">
+        <label for="regEditDepartment">แผนก</label>
+        <input type="text" id="regEditDepartment" placeholder="แผนก">
+      </div>
+      <div class="form-row">
+        <label for="regEditPrId">ซื้อล่าสุดจาก PR</label>
+        <input type="text" id="regEditPrId" placeholder="เลขที่ PR">
+      </div>
+      <div class="two-col">
+        <div class="form-row">
+          <label for="regEditQty">จำนวนล่าสุด</label>
+          <input type="text" id="regEditQty" placeholder="จำนวน">
+        </div>
+        <div class="form-row">
+          <label for="regEditUnit">หน่วย</label>
+          <input type="text" id="regEditUnit" placeholder="หน่วย">
+        </div>
+      </div>
+      <div class="form-row">
+        <label for="regEditAmount">จำนวนเงินล่าสุด (บาท)</label>
+        <input type="text" id="regEditAmount" placeholder="0.00">
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-ghost" id="cancelRegistryFormBtn">ยกเลิก</button>
+      <button class="btn-primary" id="saveRegistryFormBtn">บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="registryImageInput" accept="image/*" multiple style="display:none;">
 <div class="lightbox" id="lightbox"><img id="lightboxImg" alt=""></div>
 <div class="toast" id="toast"></div>
 
@@ -621,9 +685,13 @@
     new:        { label: "ได้รับใบขอซื้อแล้ว",     cls: "st-new" },
     processing: { label: "อยู่ระหว่างดำเนินการ",   cls: "st-processing" },
     shipping:   { label: "อยู่ระหว่างจัดส่ง",       cls: "st-shipping" },
-    done:       { label: "รับสินค้าเรียบร้อย",     cls: "st-done" }
+    done:       { label: "รับสินค้าเรียบร้อย",     cls: "st-done" },
+    cancelled:  { label: "ยกเลิก",                 cls: "st-cancelled" }
   };
-  var STATUS_ORDER = ["new","processing","shipping","done"];
+  var STATUS_ORDER = ["new","processing","shipping","done","cancelled"];
+  // order used to compute an overall/summary status for a PR from the statuses
+  // of its individual (non-cancelled) line items — lower index = less complete
+  var STATUS_PROGRESS_ORDER = ["new","processing","shipping","done"];
   var PURCHASING_EMAIL = "purchasing@innovafoodnbaketh.com";
   var PURCHASING_PASSWORD = "Innova2559";
 
@@ -632,6 +700,8 @@
     registry: [],
     currentPage: "requests",
     registrySearch: "",
+    registryEditKey: null,
+    registryImageTargetKey: null,
     filter: "all",
     search: "",
     role: "requester",
@@ -708,6 +778,7 @@
     r.items.forEach(function(it){
       if(it.department == null) it.department = "";
       if(!Array.isArray(it.photos)) it.photos = [];
+      if(!it.status) it.status = r.status || "new";
     });
     return r;
   }
@@ -748,6 +819,11 @@
   function saveRegistryDoc(entry){
     return db.collection("registry").doc(registryDocId(entry.key)).set(entry).catch(function(e){
       toast("บันทึกทะเบียนไม่สำเร็จ: " + e.message);
+    });
+  }
+  function deleteRegistryDoc(key){
+    return db.collection("registry").doc(registryDocId(key)).delete().catch(function(e){
+      toast("ลบรายการในทะเบียนไม่สำเร็จ: " + e.message);
     });
   }
 
@@ -844,9 +920,30 @@
     return (r.items||[]).reduce(function(sum, it){ return sum + lineActualAmount(it); }, 0);
   }
   function computeReceivedActualTotal(){
-    return state.requests
-      .filter(function(r){ return r.status === "done"; })
-      .reduce(function(sum, r){ return sum + actualTotal(r); }, 0);
+    var sum = 0;
+    state.requests.forEach(function(r){
+      (r.items||[]).forEach(function(it){
+        if(it.status === "done") sum += lineActualAmount(it);
+      });
+    });
+    return sum;
+  }
+  // overall status for a PR, derived from the status of its individual line items:
+  // if every item is cancelled, the whole PR shows as cancelled; otherwise show the
+  // least-advanced status among the non-cancelled items (so the card reflects the
+  // item that still needs the most work)
+  function computeOverallStatus(r){
+    var items = r.items || [];
+    if(items.length === 0) return r.status || "new";
+    var active = items.filter(function(it){ return it.status !== "cancelled"; });
+    if(active.length === 0) return "cancelled";
+    var minIdx = STATUS_PROGRESS_ORDER.length - 1;
+    active.forEach(function(it){
+      var idx = STATUS_PROGRESS_ORDER.indexOf(it.status);
+      if(idx === -1) idx = 0;
+      if(idx < minIdx) minIdx = idx;
+    });
+    return STATUS_PROGRESS_ORDER[minIdx];
   }
   function distinctDepartments(r){
     var seen = {};
@@ -889,15 +986,19 @@
 
   // ---------- stats ----------
   function renderStats(){
-    var stats = {total: state.requests.length, new:0, processing:0, shipping:0, done:0};
-    state.requests.forEach(function(r){ stats[r.status] = (stats[r.status]||0) + 1; });
+    // status counts are per line item (not per PR), since each item now tracks its own status
+    var stats = {new:0, processing:0, shipping:0, done:0, cancelled:0};
+    state.requests.forEach(function(r){
+      (r.items||[]).forEach(function(it){ stats[it.status] = (stats[it.status]||0) + 1; });
+    });
     var receivedTotal = computeReceivedActualTotal();
     document.getElementById("statsRow").innerHTML =
-      '<div class="stat is-new"><div class="n">' + stats.total + '</div><div class="l">ใบขอซื้อทั้งหมด</div></div>' +
-      '<div class="stat is-new"><div class="n">' + (stats.new||0) + '</div><div class="l">ได้รับใบขอซื้อแล้ว</div></div>' +
-      '<div class="stat is-wait"><div class="n">' + (stats.processing||0) + '</div><div class="l">อยู่ระหว่างดำเนินการ</div></div>' +
-      '<div class="stat is-ship"><div class="n">' + (stats.shipping||0) + '</div><div class="l">อยู่ระหว่างจัดส่ง</div></div>' +
-      '<div class="stat is-ok"><div class="n">' + (stats.done||0) + '</div><div class="l">รับสินค้าเรียบร้อย</div></div>' +
+      '<div class="stat is-new"><div class="n">' + state.requests.length + '</div><div class="l">ใบขอซื้อทั้งหมด</div></div>' +
+      '<div class="stat is-new"><div class="n">' + (stats.new||0) + '</div><div class="l">รายการที่ได้รับแล้ว</div></div>' +
+      '<div class="stat is-wait"><div class="n">' + (stats.processing||0) + '</div><div class="l">รายการที่กำลังดำเนินการ</div></div>' +
+      '<div class="stat is-ship"><div class="n">' + (stats.shipping||0) + '</div><div class="l">รายการที่กำลังจัดส่ง</div></div>' +
+      '<div class="stat is-ok"><div class="n">' + (stats.done||0) + '</div><div class="l">รายการที่รับแล้ว</div></div>' +
+      '<div class="stat is-cancel"><div class="n">' + (stats.cancelled||0) + '</div><div class="l">รายการที่ยกเลิก</div></div>' +
       '<div class="stat is-money"><div class="n">' + fmtMoney(receivedTotal) + '</div><div class="l">ยอดรับสินค้าจริงรวม</div></div>';
   }
 
@@ -917,7 +1018,7 @@
     renderStats();
     var list = state.requests.slice().sort(function(a,b){ return b.createdAt - a.createdAt; });
     if(state.filter !== "all"){
-      list = list.filter(function(r){ return r.status === state.filter; });
+      list = list.filter(function(r){ return (r.items||[]).some(function(it){ return it.status === state.filter; }); });
     }
     if(state.search){
       list = list.filter(function(r){ return matchesSearch(r, state.search); });
@@ -937,7 +1038,7 @@
   }
 
   function renderCard(r){
-    var st = STATUS[r.status] || STATUS.new;
+    var st = STATUS[computeOverallStatus(r)] || STATUS.new;
     var total = requestTotal(r);
     var hasActual = hasAnyActual(r);
     var depts = distinctDepartments(r);
@@ -945,7 +1046,9 @@
     var itemLines = (r.items||[]).map(function(it){
       var deptTag = it.department ? '<span class="dept-tag">' + escapeHtml(it.department) + '</span>' : '';
       var photoMark = (it.photos && it.photos.length) ? ' 📷' : '';
-      return '<div class="row">' + deptTag + '<span>' + escapeHtml(it.name) + ' ×' + escapeHtml(it.qty) + (it.unit ? ' ' + escapeHtml(it.unit) : '') + photoMark + '</span></div>';
+      var itSt = STATUS[it.status] || STATUS.new;
+      var itBadge = '<span class="badge-sm ' + itSt.cls + '">' + itSt.label + '</span>';
+      return '<div class="row">' + deptTag + '<span>' + escapeHtml(it.name) + ' ×' + escapeHtml(it.qty) + (it.unit ? ' ' + escapeHtml(it.unit) : '') + photoMark + '</span>' + itBadge + '</div>';
     }).join("");
     if(!itemLines) itemLines = '<span class="muted">ไม่มีรายการ</span>';
 
@@ -1000,7 +1103,7 @@
 
         '<div class="card-foot">' +
           '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">' +
-            '<span class="badge ' + st.cls + '"><span class="dot"></span>' + st.label + '</span>' +
+            '<span class="badge ' + st.cls + '"><span class="dot"></span>ภาพรวม: ' + st.label + '</span>' +
             pendingBadge +
           '</div>' +
           '<div class="card-actions">' + actions + '</div>' +
@@ -1048,7 +1151,7 @@
 
   // ---------- items (create / edit form) ----------
   function newItemRow(){
-    return { name: "", department: "", qty: "1", unit: "", amount: "", photos: [], actualQty: "", actualAmount: "" };
+    return { name: "", department: "", qty: "1", unit: "", amount: "", photos: [], actualQty: "", actualAmount: "", status: "new" };
   }
   function renderItemsTable(){
     var container = document.getElementById("itemsContainer");
@@ -1190,7 +1293,8 @@
         name: ni.name, department: ni.department, qty: ni.qty, unit: ni.unit, amount: ni.amount,
         photos: ni.photos || [],
         actualQty: match ? match.actualQty : "",
-        actualAmount: match ? match.actualAmount : ""
+        actualAmount: match ? match.actualAmount : "",
+        status: match ? match.status : "new"
       };
     });
   }
@@ -1274,7 +1378,7 @@
         id: idInfo.id,
         dayKey: idInfo.dayKey,
         title: title || cleanItems[0].name,
-        items: cleanItems.map(function(it){ return Object.assign({actualQty:"", actualAmount:""}, it); }),
+        items: cleanItems.map(function(it){ return Object.assign({actualQty:"", actualAmount:"", status:"new"}, it); }),
         requester: requester,
         requesterEmail: state.identityEmail || "",
         needDate: needDate,
@@ -1335,6 +1439,9 @@
   async function addItemToRegistry(r, it){
     var key = registryKey(it.name, it.department);
     var existing = state.registry.find(function(e){ return e.key === key; });
+    // Carry over the item's reference photo(s) if it has any; otherwise keep whatever
+    // reference image was already saved on the registry entry (don't wipe it out).
+    var images = (it.photos && it.photos.length) ? it.photos.slice() : (existing && existing.images ? existing.images.slice() : []);
     var entry = {
       key: key,
       name: it.name,
@@ -1344,6 +1451,7 @@
       lastQty: (it.actualQty !== "" && it.actualQty != null) ? it.actualQty : it.qty,
       lastUnit: it.unit || "",
       lastAmount: (it.actualAmount !== "" && it.actualAmount != null) ? it.actualAmount : it.amount,
+      images: images,
       addedAt: existing ? existing.addedAt : Date.now()
     };
     await saveRegistryDoc(entry);
@@ -1371,6 +1479,16 @@
     }
     empty.style.display = "none";
     container.innerHTML = list.map(function(e){
+      var images = e.images || [];
+      var imagesHtml =
+        '<div class="item-photo-thumbs" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--line);display:flex;gap:8px;flex-wrap:wrap;align-items:center;">' +
+          images.map(function(src, i){
+            return '<div class="preview-item"><img src="' + src + '" data-lightbox="1" alt="รูปภาพอ้างอิง ' + (i+1) + '"><button class="x" data-rm-registry-img="1" data-key="' + escapeHtml(e.key) + '" data-idx="' + i + '" aria-label="ลบรูป">×</button></div>';
+          }).join("") +
+          '<button class="btn-sm" data-registry-action="addimg" data-key="' + escapeHtml(e.key) + '">' +
+            (images.length ? '➕ เพิ่มรูป' : '🖼️ เพิ่มรูปภาพอ้างอิง') +
+          '</button>' +
+        '</div>';
       return (
         '<div class="registry-card">' +
           '<div class="registry-top">' +
@@ -1385,10 +1503,120 @@
             '<div class="kv"><div class="k">จำนวนล่าสุด</div><div class="v">' + escapeHtml(e.lastQty) + (e.lastUnit ? ' ' + escapeHtml(e.lastUnit) : '') + '</div></div>' +
             '<div class="kv"><div class="k">จำนวนเงินล่าสุด</div><div class="v">' + fmtMoney(e.lastAmount) + '</div></div>' +
           '</div>' +
+          imagesHtml +
+          '<div class="card-foot">' +
+            '<div></div>' +
+            '<div class="card-actions">' +
+              '<button class="btn-sm" data-registry-action="edit" data-key="' + escapeHtml(e.key) + '">✏️ แก้ไข</button>' +
+              '<button class="btn-sm" data-registry-action="delete" data-key="' + escapeHtml(e.key) + '">🗑️ ลบ</button>' +
+            '</div>' +
+          '</div>' +
         '</div>'
       );
     }).join("");
+    bindRegistryCardEvents();
   }
+  function bindRegistryCardEvents(){
+    document.querySelectorAll('[data-registry-action="edit"]').forEach(function(btn){
+      btn.onclick = function(){ openRegistryEditModal(btn.getAttribute("data-key")); };
+    });
+    document.querySelectorAll('[data-registry-action="delete"]').forEach(function(btn){
+      btn.onclick = async function(){
+        var key = btn.getAttribute("data-key");
+        var entry = state.registry.find(function(x){ return x.key === key; });
+        if(!confirm("ยืนยันการลบรายการ \"" + ((entry && entry.name) || "") + "\" ออกจากทะเบียน?")) return;
+        await deleteRegistryDoc(key);
+        toast("ลบรายการออกจากทะเบียนแล้ว");
+      };
+    });
+    document.querySelectorAll('[data-registry-action="addimg"]').forEach(function(btn){
+      btn.onclick = function(){
+        state.registryImageTargetKey = btn.getAttribute("data-key");
+        document.getElementById("registryImageInput").click();
+      };
+    });
+    document.querySelectorAll('[data-rm-registry-img]').forEach(function(btn){
+      btn.onclick = async function(){
+        var key = btn.getAttribute("data-key");
+        var idx = Number(btn.getAttribute("data-idx"));
+        var entry = state.registry.find(function(x){ return x.key === key; });
+        if(!entry) return;
+        entry.images = (entry.images || []).slice();
+        entry.images.splice(idx, 1);
+        await saveRegistryDoc(entry);
+        renderRegistry();
+        toast("ลบรูปภาพอ้างอิงแล้ว");
+      };
+    });
+  }
+
+  function openRegistryEditModal(key){
+    var entry = state.registry.find(function(x){ return x.key === key; });
+    if(!entry) return;
+    state.registryEditKey = key;
+    document.getElementById("regEditName").value = entry.name || "";
+    document.getElementById("regEditDepartment").value = entry.department || "";
+    document.getElementById("regEditPrId").value = entry.lastPrId || "";
+    document.getElementById("regEditQty").value = (entry.lastQty !== "" && entry.lastQty != null) ? entry.lastQty : "";
+    document.getElementById("regEditUnit").value = entry.lastUnit || "";
+    document.getElementById("regEditAmount").value = (entry.lastAmount !== "" && entry.lastAmount != null) ? entry.lastAmount : "";
+    document.getElementById("registryFormOverlay").classList.add("open");
+  }
+  function closeRegistryEditModal(){
+    document.getElementById("registryFormOverlay").classList.remove("open");
+    state.registryEditKey = null;
+  }
+  document.getElementById("closeRegistryFormBtn").onclick = closeRegistryEditModal;
+  document.getElementById("cancelRegistryFormBtn").onclick = closeRegistryEditModal;
+  document.getElementById("registryFormOverlay").addEventListener("click", function(e){
+    if(e.target.id === "registryFormOverlay") closeRegistryEditModal();
+  });
+  document.getElementById("saveRegistryFormBtn").onclick = async function(){
+    var oldEntry = state.registry.find(function(x){ return x.key === state.registryEditKey; });
+    if(!oldEntry) { closeRegistryEditModal(); return; }
+    var newName = document.getElementById("regEditName").value.trim();
+    var newDept = document.getElementById("regEditDepartment").value.trim();
+    if(!newName){
+      toast("กรุณากรอกชื่อรายการ");
+      return;
+    }
+    var newKey = registryKey(newName, newDept);
+    var entry = {
+      key: newKey,
+      name: newName,
+      department: newDept,
+      lastPrId: document.getElementById("regEditPrId").value.trim(),
+      lastDate: oldEntry.lastDate || Date.now(),
+      lastQty: document.getElementById("regEditQty").value.trim(),
+      lastUnit: document.getElementById("regEditUnit").value.trim(),
+      lastAmount: document.getElementById("regEditAmount").value.trim(),
+      images: oldEntry.images || [],
+      addedAt: oldEntry.addedAt || Date.now()
+    };
+    if(newKey !== oldEntry.key){
+      await deleteRegistryDoc(oldEntry.key);
+    }
+    await saveRegistryDoc(entry);
+    closeRegistryEditModal();
+    toast("บันทึกการแก้ไขทะเบียนแล้ว");
+  };
+  document.getElementById("registryImageInput").onchange = async function(e){
+    var key = state.registryImageTargetKey;
+    var entry = state.registry.find(function(x){ return x.key === key; });
+    if(!entry){
+      e.target.value = "";
+      return;
+    }
+    var urls = await readFilesAsDataUrls(e.target.files);
+    if(urls.length){
+      entry.images = (entry.images || []).concat(urls);
+      await saveRegistryDoc(entry);
+      renderRegistry();
+      toast("เพิ่มรูปภาพอ้างอิงแล้ว");
+    }
+    e.target.value = "";
+    state.registryImageTargetKey = null;
+  };
   document.getElementById("registrySearchInput").addEventListener("input", function(e){
     state.registrySearch = e.target.value.trim();
     renderRegistry();
@@ -1425,11 +1653,12 @@
 
   // ---------- PDF export (per-PR, via browser print — guarantees correct Thai rendering) ----------
   function printPrDocument(r){
-    var st = STATUS[r.status] || STATUS.new;
+    var st = STATUS[computeOverallStatus(r)] || STATUS.new;
 
     var itemRows = (r.items||[]).map(function(it, idx){
       var actualQtyStr = (it.actualQty !== "" && it.actualQty != null) ? escapeHtml(it.actualQty) : "-";
       var actualAmtStr = (it.actualAmount !== "" && it.actualAmount != null) ? fmtMoney(it.actualAmount) : "-";
+      var itSt = STATUS[it.status] || STATUS.new;
       return (
         '<tr>' +
           '<td>' + (idx+1) + '</td>' +
@@ -1440,6 +1669,7 @@
           '<td class="num">' + fmtMoney(it.amount) + '</td>' +
           '<td class="num">' + actualQtyStr + '</td>' +
           '<td class="num">' + actualAmtStr + '</td>' +
+          '<td>' + itSt.label + '</td>' +
         '</tr>'
       );
     }).join("");
@@ -1489,7 +1719,7 @@
       '<hr>' +
       '<div class="meta-grid">' +
         '<div><div class="k">ชื่อใบขอซื้อ</div><div class="v">' + escapeHtml(r.title||"-") + '</div></div>' +
-        '<div><div class="k">สถานะ</div><div class="v">' + st.label + '</div></div>' +
+        '<div><div class="k">สถานะภาพรวม</div><div class="v">' + st.label + '</div></div>' +
         '<div><div class="k">วันที่สร้าง</div><div class="v">' + fmtDateTime(r.createdAt) + '</div></div>' +
         '<div><div class="k">ผู้ขอซื้อ</div><div class="v">' + escapeHtml(r.requester||"-") + '</div></div>' +
         '<div><div class="k">วันที่ต้องการใช้</div><div class="v">' + fmtDate(r.needDate) + '</div></div>' +
@@ -1500,7 +1730,7 @@
       '<div class="section-title">รายการสั่งซื้อ</div>' +
       '<table><thead><tr>' +
         '<th>#</th><th>รายการ</th><th>แผนก</th><th class="num">จำนวนที่ขอ</th><th>หน่วย</th>' +
-        '<th class="num">เงินที่ขอ</th><th class="num">สั่งซื้อจริง</th><th class="num">เงินจริง</th>' +
+        '<th class="num">เงินที่ขอ</th><th class="num">สั่งซื้อจริง</th><th class="num">เงินจริง</th><th>สถานะ</th>' +
       '</tr></thead><tbody>' + itemRows + '</tbody></table>' +
       '<div class="totals">' +
         '<span>ยอดที่ขอ: ' + fmtMoney(requestTotal(r)) + '</span>' +
@@ -1534,7 +1764,8 @@
     if(!r) return;
     state.detailDraftItems = (r.items||[]).map(function(it){
       return { name: it.name, department: it.department || "", qty: it.qty, unit: it.unit, amount: it.amount,
-                photos: it.photos || [], actualQty: it.actualQty || "", actualAmount: it.actualAmount || "" };
+                photos: it.photos || [], actualQty: it.actualQty || "", actualAmount: it.actualAmount || "",
+                status: it.status || "new" };
     });
     document.getElementById("detailTitle").textContent = escapeHtml(r.title || "ใบขอซื้อ");
     document.getElementById("detailSub").textContent = r.id;
@@ -1558,7 +1789,7 @@
 
   function renderDetailBody(r){
     var isPurchasing = state.role === "purchasing";
-    var st = STATUS[r.status] || STATUS.new;
+    var st = STATUS[computeOverallStatus(r)] || STATUS.new;
 
     var infoGrid =
       '<div class="detail-grid">' +
@@ -1590,15 +1821,28 @@
           '</div>'
         : '';
 
+      var itSt = STATUS[it.status] || STATUS.new;
+      var statusCell = isPurchasing
+        ? (STATUS_ORDER.map(function(key){
+            return '<option value="' + key + '"' + (key === it.status ? " selected" : "") + '>' + STATUS[key].label + '</option>';
+          }).join(""))
+        : null;
+
       return (
         '<div class="detail-item-card">' +
-          '<div class="name">' + escapeHtml(it.name) + (it.department ? '<span class="dept-tag">' + escapeHtml(it.department) + '</span>' : '') + '</div>' +
+          '<div class="name">' + escapeHtml(it.name) + (it.department ? '<span class="dept-tag">' + escapeHtml(it.department) + '</span>' : '') +
+            (isPurchasing ? '' : '<span class="badge-sm ' + itSt.cls + '">' + itSt.label + '</span>') +
+          '</div>' +
           '<div class="detail-item-row">' +
             '<div><div class="k">ขอ (จำนวน)</div>' + escapeHtml(it.qty) + (it.unit ? ' ' + escapeHtml(it.unit) : '') + '</div>' +
             '<div><div class="k">เงินที่ขอ</div>' + fmtMoney(it.amount) + '</div>' +
             '<div><div class="k">สั่งซื้อจริง</div>' + actualQtyCell + '</div>' +
             '<div><div class="k">เงินจริง</div>' + actualAmtCell + '</div>' +
           '</div>' +
+          (isPurchasing
+            ? '<div style="margin-bottom:10px;"><div class="k" style="margin-bottom:4px;">สถานะรายการนี้</div>' +
+                '<select class="status-select-sm" data-item-status-idx="' + idx + '">' + statusCell + '</select></div>'
+            : '') +
           '<div class="k" style="margin-bottom:4px;">รูปอ้างอิงสินค้า</div>' +
           '<div class="thumbs">' + photoThumbs + '</div>' +
           registryFoot +
@@ -1636,23 +1880,14 @@
         '</div>' +
       '</div>';
 
-    var statusSection = '';
-    if(isPurchasing){
-      var opts = STATUS_ORDER.map(function(key){
-        return '<option value="' + key + '"' + (key === r.status ? " selected" : "") + '>' + STATUS[key].label + '</option>';
-      }).join("");
-      statusSection =
-        '<div class="detail-section">' +
-          '<div class="detail-section-title">สถานะ</div>' +
-          '<select class="status-select-lg" id="detailStatusSelect" style="max-width:260px;">' + opts + '</select>' +
-        '</div>';
-    }else{
-      statusSection =
-        '<div class="detail-section">' +
-          '<div class="detail-section-title">สถานะ</div>' +
-          '<span class="badge ' + st.cls + '"><span class="dot"></span>' + st.label + '</span>' +
-        '</div>';
-    }
+    // each item's status is now set individually in its own card above;
+    // this section just shows the derived overall status for the whole PR
+    var statusSection =
+      '<div class="detail-section">' +
+        '<div class="detail-section-title">สถานะภาพรวม</div>' +
+        '<span class="badge ' + st.cls + '"><span class="dot"></span>' + st.label + '</span>' +
+        (isPurchasing ? '<div class="muted" style="font-size:12px;margin-top:6px;">คำนวณจากสถานะของแต่ละรายการด้านบน — ตั้งค่าสถานะได้ที่แต่ละรายการ</div>' : '') +
+      '</div>';
 
     var pendingSection = "";
     if(r.pendingEdit){
@@ -1732,15 +1967,18 @@
       };
     });
 
-    var statusSelect = document.getElementById("detailStatusSelect");
-    if(statusSelect){
-      statusSelect.onchange = async function(){
-        r.status = statusSelect.value;
+    document.querySelectorAll('[data-item-status-idx]').forEach(function(sel){
+      sel.onchange = async function(){
+        var idx = Number(sel.getAttribute("data-item-status-idx"));
+        if(!r.items[idx]) return;
+        r.items[idx].status = sel.value;
+        if(state.detailDraftItems[idx]) state.detailDraftItems[idx].status = sel.value;
+        r.status = computeOverallStatus(r);
         await saveRequestDoc(r);
         renderDetailBody(r);
-        toast("อัปเดตสถานะแล้ว: " + STATUS[r.status].label);
+        toast("อัปเดตสถานะรายการแล้ว: " + STATUS[sel.value].label);
       };
-    }
+    });
 
     var attachBtn = document.getElementById("detailAttachReceiptBtn");
     if(attachBtn) attachBtn.onclick = function(){ openReceiptModal(r.id); };
@@ -1826,8 +2064,9 @@
     var r = state.requests.find(function(x){ return x.id === state.receiptTargetId; });
     if(r){
       r.receiptImgs = state.receiptImgs.slice();
-      if(r.receiptImgs.length > 0 && r.status !== "done"){
-        r.status = "done";
+      if(r.receiptImgs.length > 0){
+        (r.items||[]).forEach(function(it){ if(it.status !== "cancelled") it.status = "done"; });
+        r.status = computeOverallStatus(r);
       }
       await saveRequestDoc(r);
       refreshDetailIfOpen(r.id);
@@ -1852,12 +2091,18 @@
     document.getElementById("lightboxImg").src = img.src;
     document.getElementById("lightbox").classList.add("open");
   });
+  document.getElementById("registryList").addEventListener("click", function(e){
+    var img = e.target.closest('img[data-lightbox]');
+    if(!img) return;
+    document.getElementById("lightboxImg").src = img.src;
+    document.getElementById("lightbox").classList.add("open");
+  });
 
   // ---------- excel export ----------
   function getVisibleList(){
     var list = state.requests.slice().sort(function(a,b){ return b.createdAt - a.createdAt; });
     if(state.filter !== "all"){
-      list = list.filter(function(r){ return r.status === state.filter; });
+      list = list.filter(function(r){ return (r.items||[]).some(function(it){ return it.status === state.filter; }); });
     }
     if(state.search){
       list = list.filter(function(r){ return matchesSearch(r, state.search); });
@@ -1878,12 +2123,12 @@
 
     var detailRows = [];
     list.forEach(function(r){
-      var st = STATUS[r.status] || STATUS.new;
       (r.items||[]).forEach(function(it){
+        var itSt = STATUS[it.status] || STATUS.new;
         detailRows.push({
           "เลขที่ PR": r.id,
           "ชื่อใบขอซื้อ": r.title || "",
-          "สถานะ": st.label,
+          "สถานะรายการ": itSt.label,
           "รายการ": it.name || "",
           "แผนก": it.department || "",
           "จำนวนที่ขอ": it.qty || "",
@@ -1902,12 +2147,12 @@
     });
 
     var summaryRows = list.map(function(r){
-      var st = STATUS[r.status] || STATUS.new;
+      var st = STATUS[computeOverallStatus(r)] || STATUS.new;
       return {
         "เลขที่ PR": r.id,
         "ชื่อใบขอซื้อ": r.title || "",
         "แผนก": distinctDepartments(r).join(", "),
-        "สถานะ": st.label,
+        "สถานะภาพรวม": st.label,
         "ผู้ขอซื้อ": r.requester || "",
         "ใช้ที่ไหน": r.location || "",
         "ผู้รับผิดชอบ": r.owner || "",
