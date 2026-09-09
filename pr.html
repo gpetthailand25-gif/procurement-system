@@ -363,6 +363,35 @@
   .pending-actions{display:flex;gap:8px;margin-top:12px;}
   .status-select-lg{font-size:14px;padding:9px 11px;font-weight:700;}
 
+  /* delivery batches (ทยอยสั่งซื้อ) */
+  .delivery-block{margin-top:8px;margin-bottom:10px;padding-top:10px;border-top:1px dashed var(--line-strong);}
+  .delivery-rows{display:flex;flex-direction:column;gap:6px;}
+  .delivery-row{display:grid;grid-template-columns:1fr .8fr 1fr 1.3fr 1.3fr auto;gap:6px;align-items:center;}
+  .delivery-row input,.delivery-row select{padding:7px 8px;font-size:12.5px;border:1.5px solid var(--line-strong);border-radius:var(--radius);font-family:inherit;background:var(--panel);}
+  .delivery-row .rm-row{
+    width:24px;height:24px;border-radius:50%;border:none;background:var(--cancel-soft);color:var(--cancel-dark);
+    cursor:pointer;font-size:13px;line-height:1;
+  }
+  .delivery-row .rm-row:hover{background:var(--accent);color:#fff;}
+  .delivery-empty-hint{font-size:12px;color:var(--ink-faint);font-style:italic;}
+  .delivery-summary{font-size:12px;color:var(--ink-soft);margin-top:6px;font-weight:600;}
+  .delivery-row-view{display:grid;grid-template-columns:1fr .8fr 1fr 1.3fr 1.3fr;gap:6px;font-size:12.5px;padding:5px 0;border-bottom:1px solid var(--line);align-items:center;}
+  .delivery-row-view:last-child{border-bottom:none;}
+  @media(max-width:640px){
+    .delivery-row,.delivery-row-view{grid-template-columns:1fr 1fr;}
+  }
+
+  /* two-column layout: create-PR form on the left, request list on the right */
+  .requests-layout{display:grid;grid-template-columns:400px 1fr;gap:20px;align-items:start;}
+  .requests-left{position:sticky;top:20px;}
+  .requests-left .modal{max-width:none;width:100%;box-shadow:0 1px 4px rgba(20,20,10,.06);border:1px solid var(--line);}
+  .requests-left .modal-body{max-height:none;overflow:visible;}
+  .requests-right{min-width:0;}
+  @media(max-width:1080px){
+    .requests-layout{grid-template-columns:1fr;}
+    .requests-left{position:static;}
+  }
+
   .lightbox{
     position:fixed;inset:0;background:rgba(10,10,8,.86);display:none;
     align-items:center;justify-content:center;z-index:60;padding:24px;cursor:zoom-out;
@@ -424,33 +453,108 @@
 
   <div class="stats" id="statsRow"></div>
 
-  <div class="toolbar">
-    <div class="search-wrap">
-      <span class="ic">🔎</span>
-      <input type="text" id="searchInput" placeholder="ค้นหา: เลขที่ PR, ชื่อรายการ, แผนก, ผู้ขอซื้อ..." autocomplete="off">
-    </div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap;">
-      <button class="btn-ghost" id="exportExcelBtn">⬇ ส่งออก Excel</button>
-      <button class="btn-primary" id="openNewBtn">+ สร้างใบขอซื้อใหม่</button>
-    </div>
-  </div>
-  <div class="toolbar-row2">
-    <div class="filters" id="filterChips">
-      <span class="chip active" data-filter="all">ทั้งหมด</span>
-      <span class="chip" data-filter="new">ได้รับใบขอซื้อแล้ว</span>
-      <span class="chip" data-filter="processing">อยู่ระหว่างดำเนินการ</span>
-      <span class="chip" data-filter="shipping">อยู่ระหว่างจัดส่ง</span>
-      <span class="chip" data-filter="done">รับสินค้าเรียบร้อย</span>
-      <span class="chip" data-filter="cancelled">ยกเลิก</span>
-    </div>
-  </div>
+  <div class="requests-layout">
 
-  <div class="cards" id="cardList"></div>
-  <div id="emptyState" class="empty" style="display:none;">
-    <div class="big">📋</div>
-    <div style="font-weight:700;color:var(--ink-soft);margin-bottom:4px;" id="emptyTitle">ยังไม่มีใบขอซื้อ</div>
-    <div style="font-size:13px;" id="emptySub">กดปุ่ม "สร้างใบขอซื้อใหม่" เพื่อเริ่มต้น</div>
-  </div>
+    <div class="requests-left">
+      <div class="modal">
+        <div class="modal-head">
+          <div>
+            <h2 id="formTitle">สร้างใบขอซื้อใหม่</h2>
+            <div class="modal-sub" id="formSub"></div>
+          </div>
+        </div>
+        <div class="modal-body">
+          <div class="form-row">
+            <label for="reqTitle">ชื่อใบขอซื้อ / งานที่เกี่ยวข้อง</label>
+            <input type="text" id="reqTitle" placeholder="เช่น วัสดุซ่อมบำรุงสายผลิตที่ 2">
+          </div>
+
+          <div class="form-row">
+            <label>รายการที่ต้องการสั่งซื้อ</label>
+            <div id="itemsContainer"></div>
+            <button class="add-row-btn" id="addItemBtn">+ เพิ่มรายการ</button>
+            <div class="total-line">รวมทั้งสิ้น <span class="v" id="totalAmount">0.00 บาท</span></div>
+          </div>
+
+          <div class="two-col">
+            <div class="form-row">
+              <label for="reqRequester">ผู้ขอซื้อ</label>
+              <input type="text" id="reqRequester" placeholder="ชื่อ-นามสกุล">
+            </div>
+            <div class="form-row">
+              <label for="reqNeedDate">วันที่ต้องการใช้ของ</label>
+              <input type="date" id="reqNeedDate">
+            </div>
+          </div>
+
+          <div class="two-col">
+            <div class="form-row">
+              <label for="reqLocation">ใช้ที่ไหน</label>
+              <input type="text" id="reqLocation" placeholder="เช่น สายการผลิตที่ 1">
+            </div>
+            <div class="form-row">
+              <label for="reqOwner">ใครรับผิดชอบ</label>
+              <input type="text" id="reqOwner" placeholder="ผู้รับผิดชอบดูแล/เบิกใช้">
+            </div>
+          </div>
+
+          <div class="form-row">
+            <label for="reqNote">หมายเหตุเพิ่มเติม</label>
+            <textarea id="reqNote" placeholder="รายละเอียดเพิ่มเติม (ถ้ามี)"></textarea>
+          </div>
+
+          <div class="form-row" id="editMessageRow" style="display:none;">
+            <label for="reqEditMessage">เหตุผล / รายละเอียดที่ขอแก้ไข</label>
+            <textarea id="reqEditMessage" placeholder="อธิบายสิ่งที่ต้องการแก้ไข เพื่อให้ฝ่ายจัดซื้อพิจารณา"></textarea>
+          </div>
+
+          <div class="form-row">
+            <label>หลักฐานการอนุมัติให้สั่งซื้อ (แนบรูป)</label>
+            <div class="upload-zone" id="approvalZone">
+              <div class="ic">📎</div>
+              <div class="t">คลิกเพื่อแนบรูปหลักฐานการอนุมัติ</div>
+            </div>
+            <input type="file" id="approvalInput" accept="image/*" multiple style="display:none;">
+            <div class="preview-row" id="approvalPreview"></div>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button class="btn-ghost" id="cancelFormBtn">ยกเลิก / เริ่มใบใหม่</button>
+          <button class="btn-primary" id="saveFormBtn">บันทึกใบขอซื้อ</button>
+        </div>
+      </div>
+    </div><!-- /requests-left -->
+
+    <div class="requests-right">
+      <div class="toolbar">
+        <div class="search-wrap">
+          <span class="ic">🔎</span>
+          <input type="text" id="searchInput" placeholder="ค้นหา: เลขที่ PR, ชื่อรายการ, แผนก, ผู้ขอซื้อ..." autocomplete="off">
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button class="btn-ghost" id="exportExcelBtn">⬇ ส่งออก Excel</button>
+        </div>
+      </div>
+      <div class="toolbar-row2">
+        <div class="filters" id="filterChips">
+          <span class="chip active" data-filter="all">ทั้งหมด</span>
+          <span class="chip" data-filter="new">ได้รับใบขอซื้อแล้ว</span>
+          <span class="chip" data-filter="processing">อยู่ระหว่างดำเนินการ</span>
+          <span class="chip" data-filter="shipping">อยู่ระหว่างจัดส่ง</span>
+          <span class="chip" data-filter="done">รับสินค้าเรียบร้อย</span>
+          <span class="chip" data-filter="cancelled">ยกเลิก</span>
+        </div>
+      </div>
+
+      <div class="cards" id="cardList"></div>
+      <div id="emptyState" class="empty" style="display:none;">
+        <div class="big">📋</div>
+        <div style="font-weight:700;color:var(--ink-soft);margin-bottom:4px;" id="emptyTitle">ยังไม่มีใบขอซื้อ</div>
+        <div style="font-size:13px;" id="emptySub">กรอกแบบฟอร์มด้านซ้ายเพื่อสร้างใบขอซื้อใหม่</div>
+      </div>
+    </div><!-- /requests-right -->
+
+  </div><!-- /requests-layout -->
 
   </div><!-- /requestsPage -->
 
@@ -470,78 +574,6 @@
     </div>
   </div>
 
-</div>
-
-<!-- Create / Edit form modal (shared) -->
-<div class="overlay" id="formOverlay">
-  <div class="modal">
-    <div class="modal-head">
-      <div>
-        <h2 id="formTitle">สร้างใบขอซื้อใหม่</h2>
-        <div class="modal-sub" id="formSub"></div>
-      </div>
-      <button class="modal-close" id="closeFormBtn" aria-label="ปิด">×</button>
-    </div>
-    <div class="modal-body">
-      <div class="form-row">
-        <label for="reqTitle">ชื่อใบขอซื้อ / งานที่เกี่ยวข้อง</label>
-        <input type="text" id="reqTitle" placeholder="เช่น วัสดุซ่อมบำรุงสายผลิตที่ 2">
-      </div>
-
-      <div class="form-row">
-        <label>รายการที่ต้องการสั่งซื้อ</label>
-        <div id="itemsContainer"></div>
-        <button class="add-row-btn" id="addItemBtn">+ เพิ่มรายการ</button>
-        <div class="total-line">รวมทั้งสิ้น <span class="v" id="totalAmount">0.00 บาท</span></div>
-      </div>
-
-      <div class="two-col">
-        <div class="form-row">
-          <label for="reqRequester">ผู้ขอซื้อ</label>
-          <input type="text" id="reqRequester" placeholder="ชื่อ-นามสกุล">
-        </div>
-        <div class="form-row">
-          <label for="reqNeedDate">วันที่ต้องการใช้ของ</label>
-          <input type="date" id="reqNeedDate">
-        </div>
-      </div>
-
-      <div class="two-col">
-        <div class="form-row">
-          <label for="reqLocation">ใช้ที่ไหน</label>
-          <input type="text" id="reqLocation" placeholder="เช่น สายการผลิตที่ 1">
-        </div>
-        <div class="form-row">
-          <label for="reqOwner">ใครรับผิดชอบ</label>
-          <input type="text" id="reqOwner" placeholder="ผู้รับผิดชอบดูแล/เบิกใช้">
-        </div>
-      </div>
-
-      <div class="form-row">
-        <label for="reqNote">หมายเหตุเพิ่มเติม</label>
-        <textarea id="reqNote" placeholder="รายละเอียดเพิ่มเติม (ถ้ามี)"></textarea>
-      </div>
-
-      <div class="form-row" id="editMessageRow" style="display:none;">
-        <label for="reqEditMessage">เหตุผล / รายละเอียดที่ขอแก้ไข</label>
-        <textarea id="reqEditMessage" placeholder="อธิบายสิ่งที่ต้องการแก้ไข เพื่อให้ฝ่ายจัดซื้อพิจารณา"></textarea>
-      </div>
-
-      <div class="form-row">
-        <label>หลักฐานการอนุมัติให้สั่งซื้อ (แนบรูป)</label>
-        <div class="upload-zone" id="approvalZone">
-          <div class="ic">📎</div>
-          <div class="t">คลิกเพื่อแนบรูปหลักฐานการอนุมัติ</div>
-        </div>
-        <input type="file" id="approvalInput" accept="image/*" multiple style="display:none;">
-        <div class="preview-row" id="approvalPreview"></div>
-      </div>
-    </div>
-    <div class="modal-foot">
-      <button class="btn-ghost" id="cancelFormBtn">ยกเลิก</button>
-      <button class="btn-primary" id="saveFormBtn">บันทึกใบขอซื้อ</button>
-    </div>
-  </div>
 </div>
 
 <!-- Detail / drill-down modal -->
@@ -779,6 +811,7 @@
       if(it.department == null) it.department = "";
       if(!Array.isArray(it.photos)) it.photos = [];
       if(!it.status) it.status = r.status || "new";
+      if(!Array.isArray(it.deliveries)) it.deliveries = [];
     });
     return r;
   }
@@ -851,6 +884,7 @@
   function loadRequests(){
     loadIdentity();
     applyRoleUI();
+    openFormModal("create", null);
     startRealtimeSync();
   }
 
@@ -912,6 +946,13 @@
       return Number(it.actualAmount);
     }
     return Number(it.amount) || 0;
+  }
+  // sum of qty/amount across an item's delivery batches (ทยอยสั่งซื้อ/จัดส่ง)
+  function deliveredQtySum(it){
+    return (it.deliveries||[]).reduce(function(sum, d){ return sum + (Number(d.qty)||0); }, 0);
+  }
+  function deliveredAmountSum(it){
+    return (it.deliveries||[]).reduce(function(sum, d){ return sum + (Number(d.amount)||0); }, 0);
   }
   function hasAnyActual(r){
     return (r.items||[]).some(function(it){ return it.actualAmount !== "" && it.actualAmount != null; });
@@ -1294,7 +1335,8 @@
         photos: ni.photos || [],
         actualQty: match ? match.actualQty : "",
         actualAmount: match ? match.actualAmount : "",
-        status: match ? match.status : "new"
+        status: match ? match.status : "new",
+        deliveries: match && Array.isArray(match.deliveries) ? match.deliveries.slice() : []
       };
     });
   }
@@ -1339,17 +1381,16 @@
     }
     renderItemsTable();
     renderPreview("approvalPreview", state.newApprovalImgs);
-    document.getElementById("formOverlay").classList.add("open");
+    // form is now an always-visible panel (left column) instead of a modal overlay;
+    // when opened for editing, scroll it into view so the person notices it changed
+    if(mode !== "create"){
+      document.querySelector(".requests-left").scrollIntoView({behavior:"smooth", block:"start"});
+    }
   }
   function closeFormModal(){
-    document.getElementById("formOverlay").classList.remove("open");
+    openFormModal("create", null);
   }
-  document.getElementById("openNewBtn").onclick = function(){ openFormModal("create", null); };
-  document.getElementById("closeFormBtn").onclick = closeFormModal;
   document.getElementById("cancelFormBtn").onclick = closeFormModal;
-  document.getElementById("formOverlay").addEventListener("click", function(e){
-    if(e.target.id === "formOverlay") closeFormModal();
-  });
 
   document.getElementById("saveFormBtn").onclick = async function(){
     var title = document.getElementById("reqTitle").value.trim();
@@ -1378,7 +1419,7 @@
         id: idInfo.id,
         dayKey: idInfo.dayKey,
         title: title || cleanItems[0].name,
-        items: cleanItems.map(function(it){ return Object.assign({actualQty:"", actualAmount:"", status:"new"}, it); }),
+        items: cleanItems.map(function(it){ return Object.assign({actualQty:"", actualAmount:"", status:"new", deliveries:[]}, it); }),
         requester: requester,
         requesterEmail: state.identityEmail || "",
         needDate: needDate,
@@ -1681,6 +1722,30 @@
       return '<img src="' + src + '">';
     }).join("");
 
+    var deliveryHasAny = (r.items||[]).some(function(it){ return (it.deliveries||[]).length > 0; });
+    var deliveryBlock = "";
+    if(deliveryHasAny){
+      var deliveryRows = "";
+      (r.items||[]).forEach(function(it){
+        (it.deliveries||[]).forEach(function(d){
+          var dst = STATUS[d.status] || STATUS.processing;
+          deliveryRows +=
+            '<tr>' +
+              '<td>' + escapeHtml(it.name) + '</td>' +
+              '<td>' + fmtDate(d.date) + '</td>' +
+              '<td class="num">' + (d.qty !== "" && d.qty != null ? escapeHtml(d.qty) : '-') + (it.unit ? ' ' + escapeHtml(it.unit) : '') + '</td>' +
+              '<td class="num">' + (d.amount !== "" && d.amount != null ? fmtMoney(d.amount) : '-') + '</td>' +
+              '<td>' + (d.channel ? escapeHtml(d.channel) : '-') + '</td>' +
+              '<td>' + dst.label + '</td>' +
+            '</tr>';
+        });
+      });
+      deliveryBlock =
+        '<div class="section-title">รายละเอียดรอบสั่งซื้อ/จัดส่ง (ทยอยสั่ง)</div>' +
+        '<table><thead><tr><th>รายการ</th><th>วันที่จัดส่ง</th><th class="num">จำนวนที่สั่ง</th><th class="num">ราคา</th><th>ช่องทางการซื้อ</th><th>สถานะ</th></tr></thead>' +
+        '<tbody>' + deliveryRows + '</tbody></table>';
+    }
+
     var evidenceBlock = "";
     if(approvalImgsHtml || receiptImgsHtml){
       evidenceBlock =
@@ -1736,6 +1801,7 @@
         '<span>ยอดที่ขอ: ' + fmtMoney(requestTotal(r)) + '</span>' +
         '<span>ยอดจริง: ' + fmtMoney(actualTotal(r)) + '</span>' +
       '</div>' +
+      deliveryBlock +
       evidenceBlock +
       '<div class="sign-row">' +
         '<div class="sign-box"><div class="sign-line"></div>ผู้ขอซื้อ</div>' +
@@ -1765,7 +1831,10 @@
     state.detailDraftItems = (r.items||[]).map(function(it){
       return { name: it.name, department: it.department || "", qty: it.qty, unit: it.unit, amount: it.amount,
                 photos: it.photos || [], actualQty: it.actualQty || "", actualAmount: it.actualAmount || "",
-                status: it.status || "new" };
+                status: it.status || "new",
+                deliveries: (it.deliveries||[]).map(function(d){
+                  return { date: d.date || "", qty: d.qty != null ? d.qty : "", amount: d.amount != null ? d.amount : "", channel: d.channel || "", status: d.status || "processing" };
+                }) };
     });
     document.getElementById("detailTitle").textContent = escapeHtml(r.title || "ใบขอซื้อ");
     document.getElementById("detailSub").textContent = r.id;
@@ -1806,12 +1875,52 @@
         return '<img class="thumb" src="' + src + '" data-lightbox="1" alt="รูปอ้างอิงสินค้า ' + (pi+1) + '">';
       }).join("") || '<span class="muted" style="font-size:12px;">ไม่มีรูปอ้างอิง</span>';
 
-      var actualQtyCell = isPurchasing
-        ? '<input type="number" data-detail-field="actualQty" data-idx="' + idx + '" value="' + escapeHtml(it.actualQty) + '" min="0" step="any" placeholder="-">'
-        : (it.actualQty !== "" && it.actualQty != null ? escapeHtml(it.actualQty) : '<span class="muted">-</span>');
-      var actualAmtCell = isPurchasing
-        ? '<input type="number" data-detail-field="actualAmount" data-idx="' + idx + '" value="' + escapeHtml(it.actualAmount) + '" min="0" step="0.01" placeholder="-">'
-        : (it.actualAmount !== "" && it.actualAmount != null ? fmtMoney(it.actualAmount) : '<span class="muted">-</span>');
+      var deliveredQty = deliveredQtySum(it);
+      var deliveredAmt = deliveredAmountSum(it);
+      var hasDeliveries = (it.deliveries||[]).length > 0;
+      // fall back to legacy single actualQty/actualAmount values for items saved before
+      // the delivery-batch feature existed and never got any batches added
+      var actualQtyDisplay = hasDeliveries ? deliveredQty : (it.actualQty !== "" && it.actualQty != null ? Number(it.actualQty) : null);
+      var actualAmtDisplay = hasDeliveries ? deliveredAmt : (it.actualAmount !== "" && it.actualAmount != null ? Number(it.actualAmount) : null);
+      var actualQtyCell = (actualQtyDisplay != null) ? escapeHtml(actualQtyDisplay) : '<span class="muted">-</span>';
+      var actualAmtCell = (actualAmtDisplay != null) ? fmtMoney(actualAmtDisplay) : '<span class="muted">-</span>';
+
+      var deliveryRowsHtml = (it.deliveries||[]).map(function(d, di){
+        var delStatusOpts = STATUS_ORDER.map(function(key){
+          return '<option value="' + key + '"' + (key === (d.status||"processing") ? " selected" : "") + '>' + STATUS[key].label + '</option>';
+        }).join("");
+        return '<div class="delivery-row">' +
+          '<input type="date" data-delivery-field="date" data-idx="' + idx + '" data-di="' + di + '" value="' + escapeHtml(d.date||"") + '">' +
+          '<input type="number" data-delivery-field="qty" data-idx="' + idx + '" data-di="' + di + '" value="' + escapeHtml(d.qty) + '" min="0" step="any" placeholder="จำนวนที่สั่ง">' +
+          '<input type="number" data-delivery-field="amount" data-idx="' + idx + '" data-di="' + di + '" value="' + escapeHtml(d.amount) + '" min="0" step="0.01" placeholder="ราคา (บาท)">' +
+          '<input type="text" data-delivery-field="channel" data-idx="' + idx + '" data-di="' + di + '" value="' + escapeHtml(d.channel||"") + '" placeholder="ช่องทางการซื้อ เช่น ร้าน/เว็บ/ผู้จำหน่าย">' +
+          '<select data-delivery-field="status" data-idx="' + idx + '" data-di="' + di + '">' + delStatusOpts + '</select>' +
+          '<button class="rm-row" data-rm-delivery="' + idx + ':' + di + '" aria-label="ลบรอบสั่งซื้อนี้">×</button>' +
+        '</div>';
+      }).join("") || '<div class="delivery-empty-hint">ยังไม่มีรอบสั่งซื้อ — กด "+ เพิ่มรอบสั่งซื้อ" ด้านล่างเพื่อระบุวันที่จัดส่ง จำนวนที่สั่ง และช่องทางการซื้อของแต่ละรอบ</div>';
+
+      var deliverySection = isPurchasing
+        ? '<div class="delivery-block">' +
+            '<div class="k" style="margin-bottom:6px;">ทยอยสั่งซื้อ / จัดส่ง (วันที่ · จำนวน · ราคา · ช่องทางการซื้อ · สถานะ ของแต่ละรอบ)</div>' +
+            '<div class="delivery-rows">' + deliveryRowsHtml + '</div>' +
+            '<button class="btn-sm" data-add-delivery="' + idx + '" style="margin-top:8px;">+ เพิ่มรอบสั่งซื้อ</button>' +
+            '<div class="delivery-summary">รวมสั่งแล้ว ' + deliveredQty + (it.unit ? ' ' + escapeHtml(it.unit) : '') + ' จากที่ขอ ' + escapeHtml(it.qty) + (it.unit ? ' ' + escapeHtml(it.unit) : '') + ' &nbsp;•&nbsp; รวมเงิน ' + fmtMoney(deliveredAmt) + '</div>' +
+          '</div>'
+        : ((it.deliveries||[]).length
+            ? '<div class="delivery-block">' +
+                '<div class="k" style="margin-bottom:6px;">รอบการสั่งซื้อ/จัดส่ง</div>' +
+                it.deliveries.map(function(d){
+                  var dst = STATUS[d.status] || STATUS.processing;
+                  return '<div class="delivery-row-view">' +
+                    '<span>' + fmtDate(d.date) + '</span>' +
+                    '<span>' + (d.qty !== "" && d.qty != null ? escapeHtml(d.qty) + (it.unit ? ' ' + escapeHtml(it.unit) : '') : '-') + '</span>' +
+                    '<span>' + (d.amount !== "" && d.amount != null ? fmtMoney(d.amount) : '-') + '</span>' +
+                    '<span>' + (d.channel ? escapeHtml(d.channel) : '-') + '</span>' +
+                    '<span class="badge-sm ' + dst.cls + '">' + dst.label + '</span>' +
+                  '</div>';
+                }).join("") +
+              '</div>'
+            : '');
 
       var inRegistry = state.registry.some(function(e){ return e.key === registryKey(it.name, it.department); });
       var registryFoot = isPurchasing
@@ -1836,11 +1945,12 @@
           '<div class="detail-item-row">' +
             '<div><div class="k">ขอ (จำนวน)</div>' + escapeHtml(it.qty) + (it.unit ? ' ' + escapeHtml(it.unit) : '') + '</div>' +
             '<div><div class="k">เงินที่ขอ</div>' + fmtMoney(it.amount) + '</div>' +
-            '<div><div class="k">สั่งซื้อจริง</div>' + actualQtyCell + '</div>' +
-            '<div><div class="k">เงินจริง</div>' + actualAmtCell + '</div>' +
+            '<div><div class="k">สั่งซื้อจริง (รวม)</div>' + actualQtyCell + '</div>' +
+            '<div><div class="k">เงินจริง (รวม)</div>' + actualAmtCell + '</div>' +
           '</div>' +
+          deliverySection +
           (isPurchasing
-            ? '<div style="margin-bottom:10px;"><div class="k" style="margin-bottom:4px;">สถานะรายการนี้</div>' +
+            ? '<div style="margin-bottom:10px;"><div class="k" style="margin-bottom:4px;">สถานะรายการนี้ (ภาพรวม)</div>' +
                 '<select class="status-select-sm" data-item-status-idx="' + idx + '">' + statusCell + '</select></div>'
             : '') +
           '<div class="k" style="margin-bottom:4px;">รูปอ้างอิงสินค้า</div>' +
@@ -1861,7 +1971,7 @@
         '<div class="detail-section-title">รายการสั่งซื้อ</div>' +
         itemsCards +
         totalsLine +
-        (isPurchasing ? '<button class="btn-sm" id="saveActualsBtn" style="margin-top:10px;">บันทึกจำนวน/ราคาที่สั่งซื้อจริง</button>' : '') +
+        (isPurchasing ? '<button class="btn-sm" id="saveActualsBtn" style="margin-top:10px;">บันทึกรอบสั่งซื้อ/จำนวน/ราคาที่สั่งซื้อจริง</button>' : '') +
       '</div>';
 
     var approvalThumbs = (r.approvalImgs||[]).map(function(src,i){
@@ -1944,16 +2054,62 @@
       };
     });
 
+    document.querySelectorAll('[data-delivery-field]').forEach(function(inp){
+      var handler = function(){
+        var idx = Number(inp.getAttribute("data-idx"));
+        var di = Number(inp.getAttribute("data-di"));
+        var field = inp.getAttribute("data-delivery-field");
+        if(state.detailDraftItems[idx] && state.detailDraftItems[idx].deliveries && state.detailDraftItems[idx].deliveries[di]){
+          state.detailDraftItems[idx].deliveries[di][field] = inp.value;
+        }
+      };
+      inp.oninput = handler;
+      inp.onchange = handler;
+    });
+
+    document.querySelectorAll('[data-add-delivery]').forEach(function(btn){
+      btn.onclick = function(){
+        var idx = Number(btn.getAttribute("data-add-delivery"));
+        if(!state.detailDraftItems[idx]) return;
+        if(!Array.isArray(state.detailDraftItems[idx].deliveries)) state.detailDraftItems[idx].deliveries = [];
+        state.detailDraftItems[idx].deliveries.push({ date: "", qty: "", amount: "", channel: "", status: "processing" });
+        renderDetailBody(r);
+      };
+    });
+
+    document.querySelectorAll('[data-rm-delivery]').forEach(function(btn){
+      btn.onclick = function(){
+        var parts = btn.getAttribute("data-rm-delivery").split(":");
+        var idx = Number(parts[0]), di = Number(parts[1]);
+        if(state.detailDraftItems[idx] && state.detailDraftItems[idx].deliveries){
+          state.detailDraftItems[idx].deliveries.splice(di, 1);
+        }
+        renderDetailBody(r);
+      };
+    });
+
     var saveActualsBtn = document.getElementById("saveActualsBtn");
     if(saveActualsBtn){
       saveActualsBtn.onclick = async function(){
         r.items = r.items.map(function(it, idx){
           var draft = state.detailDraftItems[idx];
-          return Object.assign({}, it, { actualQty: draft ? draft.actualQty : it.actualQty, actualAmount: draft ? draft.actualAmount : it.actualAmount });
+          var deliveries = (draft && Array.isArray(draft.deliveries))
+            ? draft.deliveries.map(function(d){
+                return { date: d.date || "", qty: (d.qty === "" || d.qty == null) ? "" : d.qty, amount: (d.amount === "" || d.amount == null) ? "" : d.amount, channel: d.channel || "", status: d.status || "processing" };
+              })
+            : (it.deliveries || []);
+          var hasDel = deliveries.length > 0;
+          var sumQty = deliveries.reduce(function(s,d){ return s + (Number(d.qty)||0); }, 0);
+          var sumAmt = deliveries.reduce(function(s,d){ return s + (Number(d.amount)||0); }, 0);
+          return Object.assign({}, it, {
+            deliveries: deliveries,
+            actualQty: hasDel ? sumQty : (draft ? draft.actualQty : it.actualQty),
+            actualAmount: hasDel ? sumAmt : (draft ? draft.actualAmount : it.actualAmount)
+          });
         });
         await saveRequestDoc(r);
         renderDetailBody(r);
-        toast("บันทึกจำนวน/ราคาที่สั่งซื้อจริงแล้ว");
+        toast("บันทึกรอบสั่งซื้อและจำนวน/ราคาที่สั่งซื้อจริงแล้ว");
       };
     }
 
@@ -2136,6 +2292,10 @@
           "จำนวนเงินที่ขอ (บาท)": Number(it.amount) || 0,
           "จำนวนที่สั่งซื้อจริง": it.actualQty || "",
           "จำนวนเงินจริง (บาท)": (it.actualAmount !== "" && it.actualAmount != null) ? Number(it.actualAmount) : "",
+          "รอบสั่งซื้อ/จัดส่ง": (it.deliveries||[]).map(function(d){
+            var dst = STATUS[d.status] || STATUS.processing;
+            return fmtDate(d.date) + ": " + (d.qty || "-") + (it.unit ? " " + it.unit : "") + (d.amount !== "" && d.amount != null ? " (" + fmtMoney(d.amount) + ")" : "") + (d.channel ? " ซื้อจาก " + d.channel : "") + " [" + dst.label + "]";
+          }).join(" ; "),
           "ผู้ขอซื้อ": r.requester || "",
           "ใช้ที่ไหน": r.location || "",
           "ผู้รับผิดชอบ": r.owner || "",
@@ -2167,7 +2327,7 @@
     var wsSummary = XLSX.utils.json_to_sheet(summaryRows);
     var wsDetail = XLSX.utils.json_to_sheet(detailRows);
     wsSummary["!cols"] = [{wch:16},{wch:28},{wch:18},{wch:18},{wch:18},{wch:18},{wch:16},{wch:14},{wch:14},{wch:14},{wch:18}];
-    wsDetail["!cols"] = [{wch:16},{wch:24},{wch:16},{wch:22},{wch:14},{wch:10},{wch:8},{wch:14},{wch:12},{wch:12},{wch:16},{wch:18},{wch:16},{wch:14},{wch:18},{wch:24}];
+    wsDetail["!cols"] = [{wch:16},{wch:24},{wch:16},{wch:22},{wch:14},{wch:10},{wch:8},{wch:14},{wch:12},{wch:12},{wch:40},{wch:16},{wch:18},{wch:16},{wch:14},{wch:18},{wch:24}];
     XLSX.utils.book_append_sheet(wb, wsSummary, "สรุปใบขอซื้อ");
     XLSX.utils.book_append_sheet(wb, wsDetail, "รายละเอียดรายการ");
 
