@@ -232,6 +232,7 @@
   .kv .v.muted{color:var(--ink-soft);font-style:italic;font-weight:400;}
   .item-line-list{font-size:14px;line-height:1.8;}
   .item-line-list .row{display:flex;gap:6px;align-items:baseline;flex-wrap:wrap;}
+  .item-line-list .row-sub{font-size:12px;color:var(--ink-soft);padding-left:4px;margin:-2px 0 4px;line-height:1.5;}
 
   .card-foot{display:flex;align-items:center;justify-content:space-between;margin-top:14px;gap:10px;flex-wrap:wrap;}
   .thumbs{display:flex;gap:6px;}
@@ -366,7 +367,7 @@
   /* delivery batches (ทยอยสั่งซื้อ) */
   .delivery-block{margin-top:8px;margin-bottom:10px;padding-top:10px;border-top:1px dashed var(--line-strong);}
   .delivery-rows{display:flex;flex-direction:column;gap:6px;}
-  .delivery-row{display:grid;grid-template-columns:1fr .8fr 1fr 1.3fr 1.3fr auto;gap:6px;align-items:center;}
+  .delivery-row{display:grid;grid-template-columns:1fr .8fr 1fr 1.2fr 1.2fr 1.3fr auto;gap:6px;align-items:center;}
   .delivery-row input,.delivery-row select{padding:7px 8px;font-size:12.5px;border:1.5px solid var(--line-strong);border-radius:var(--radius);font-family:inherit;background:var(--panel);}
   .delivery-row .rm-row{
     width:24px;height:24px;border-radius:50%;border:none;background:var(--cancel-soft);color:var(--cancel-dark);
@@ -375,7 +376,7 @@
   .delivery-row .rm-row:hover{background:var(--accent);color:#fff;}
   .delivery-empty-hint{font-size:12px;color:var(--ink-faint);font-style:italic;}
   .delivery-summary{font-size:12px;color:var(--ink-soft);margin-top:6px;font-weight:600;}
-  .delivery-row-view{display:grid;grid-template-columns:1fr .8fr 1fr 1.3fr 1.3fr;gap:6px;font-size:12.5px;padding:5px 0;border-bottom:1px solid var(--line);align-items:center;}
+  .delivery-row-view{display:grid;grid-template-columns:1fr .8fr 1fr 1.1fr 1.1fr 1.3fr;gap:6px;font-size:12.5px;padding:5px 0;border-bottom:1px solid var(--line);align-items:center;}
   .delivery-row-view:last-child{border-bottom:none;}
   @media(max-width:640px){
     .delivery-row,.delivery-row-view{grid-template-columns:1fr 1fr;}
@@ -469,7 +470,7 @@
         </div>
         <div class="modal-body">
           <div class="form-row">
-            <label for="reqTitle">ชื่อใบขอซื้อ / งานที่เกี่ยวข้อง</label>
+            <label for="reqTitle">ชื่อใบขอซื้อ / งานที่เกี่ยวข้อง <span style="color:var(--danger,#c0392b);">*</span></label>
             <input type="text" id="reqTitle" placeholder="เช่น วัสดุซ่อมบำรุงสายผลิตที่ 2">
           </div>
 
@@ -482,22 +483,22 @@
 
           <div class="two-col">
             <div class="form-row">
-              <label for="reqRequester">ผู้ขอซื้อ</label>
+              <label for="reqRequester">ผู้ขอซื้อ <span style="color:var(--danger,#c0392b);">*</span></label>
               <input type="text" id="reqRequester" placeholder="ชื่อ-นามสกุล">
             </div>
             <div class="form-row">
-              <label for="reqNeedDate">วันที่ต้องการใช้ของ</label>
+              <label for="reqNeedDate">วันที่ต้องการใช้ของ <span style="color:var(--danger,#c0392b);">*</span></label>
               <input type="date" id="reqNeedDate">
             </div>
           </div>
 
           <div class="two-col">
             <div class="form-row">
-              <label for="reqLocation">ใช้ที่ไหน</label>
+              <label for="reqLocation">ใช้ที่ไหน <span style="color:var(--danger,#c0392b);">*</span></label>
               <input type="text" id="reqLocation" placeholder="เช่น สายการผลิตที่ 1">
             </div>
             <div class="form-row">
-              <label for="reqOwner">ใครรับผิดชอบ</label>
+              <label for="reqOwner">ใครรับผิดชอบ <span style="color:var(--danger,#c0392b);">*</span></label>
               <input type="text" id="reqOwner" placeholder="ผู้รับผิดชอบดูแล/เบิกใช้">
             </div>
           </div>
@@ -1093,7 +1094,16 @@
       var photoMark = (it.photos && it.photos.length) ? ' 📷' : '';
       var itSt = STATUS[it.status] || STATUS.new;
       var itBadge = '<span class="badge-sm ' + itSt.cls + '">' + itSt.label + '</span>';
-      return '<div class="row">' + deptTag + '<span>' + escapeHtml(it.name) + ' ×' + escapeHtml(it.qty) + (it.unit ? ' ' + escapeHtml(it.unit) : '') + photoMark + '</span>' + itBadge + '</div>';
+      var deliveries = it.deliveries || [];
+      var deliverySub = "";
+      if(deliveries.length){
+        var roundsText = deliveries.map(function(d){
+          var qtyPart = (d.qty !== "" && d.qty != null) ? ' ×' + escapeHtml(d.qty) + (it.unit ? ' ' + escapeHtml(it.unit) : '') : '';
+          return fmtDate(d.date) + qtyPart;
+        }).join(", ");
+        deliverySub = '<div class="row-sub">🚚 สั่งซื้อแล้ว ' + deliveredQtySum(it) + (it.unit ? ' ' + escapeHtml(it.unit) : '') + ' จากที่ขอ ' + escapeHtml(it.qty) + (it.unit ? ' ' + escapeHtml(it.unit) : '') + ' — วันจัดส่ง: ' + roundsText + '</div>';
+      }
+      return '<div class="row">' + deptTag + '<span>' + escapeHtml(it.name) + ' ×' + escapeHtml(it.qty) + (it.unit ? ' ' + escapeHtml(it.unit) : '') + photoMark + '</span>' + itBadge + '</div>' + deliverySub;
     }).join("");
     if(!itemLines) itemLines = '<span class="muted">ไม่มีรายการ</span>';
 
@@ -1415,7 +1425,11 @@
       .filter(function(it){ return it.name !== ""; });
 
     if(cleanItems.length === 0){ toast("กรุณาระบุรายการอย่างน้อย 1 รายการ"); return; }
-    if(!requester){ toast("กรุณาระบุผู้ขอซื้อ"); return; }
+    if(!title){ toast("กรุณาระบุชื่อใบขอซื้อ / งานที่เกี่ยวข้อง"); document.getElementById("reqTitle").focus(); return; }
+    if(!requester){ toast("กรุณาระบุผู้ขอซื้อ"); document.getElementById("reqRequester").focus(); return; }
+    if(!needDate){ toast("กรุณาระบุวันที่ต้องการใช้ของ"); document.getElementById("reqNeedDate").focus(); return; }
+    if(!location){ toast("กรุณาระบุใช้ที่ไหน"); document.getElementById("reqLocation").focus(); return; }
+    if(!owner){ toast("กรุณาระบุใครรับผิดชอบ"); document.getElementById("reqOwner").focus(); return; }
 
     if(state.formMode === "create"){
       var idInfo = await nextPrId();
@@ -1740,13 +1754,14 @@
               '<td class="num">' + (d.qty !== "" && d.qty != null ? escapeHtml(d.qty) : '-') + (it.unit ? ' ' + escapeHtml(it.unit) : '') + '</td>' +
               '<td class="num">' + (d.amount !== "" && d.amount != null ? fmtMoney(d.amount) : '-') + '</td>' +
               '<td>' + (d.channel ? escapeHtml(d.channel) : '-') + '</td>' +
+              '<td>' + (d.buyer ? escapeHtml(d.buyer) : '-') + '</td>' +
               '<td>' + dst.label + '</td>' +
             '</tr>';
         });
       });
       deliveryBlock =
         '<div class="section-title">รายละเอียดรอบสั่งซื้อ/จัดส่ง (ทยอยสั่ง)</div>' +
-        '<table><thead><tr><th>รายการ</th><th>วันที่จัดส่ง</th><th class="num">จำนวนที่สั่ง</th><th class="num">ราคา</th><th>ช่องทางการซื้อ</th><th>สถานะ</th></tr></thead>' +
+        '<table><thead><tr><th>รายการ</th><th>วันที่จัดส่ง</th><th class="num">จำนวนที่สั่ง</th><th class="num">ราคา</th><th>ช่องทางการซื้อ</th><th>ผู้สั่งซื้อ</th><th>สถานะ</th></tr></thead>' +
         '<tbody>' + deliveryRows + '</tbody></table>';
     }
 
@@ -1837,7 +1852,7 @@
                 photos: it.photos || [], actualQty: it.actualQty || "", actualAmount: it.actualAmount || "",
                 status: it.status || "new",
                 deliveries: (it.deliveries||[]).map(function(d){
-                  return { date: d.date || "", qty: d.qty != null ? d.qty : "", amount: d.amount != null ? d.amount : "", channel: d.channel || "", status: d.status || "processing" };
+                  return { date: d.date || "", qty: d.qty != null ? d.qty : "", amount: d.amount != null ? d.amount : "", channel: d.channel || "", buyer: d.buyer || "", status: d.status || "processing" };
                 }) };
     });
     document.getElementById("detailTitle").textContent = escapeHtml(r.title || "ใบขอซื้อ");
@@ -1898,6 +1913,7 @@
           '<input type="number" data-delivery-field="qty" data-idx="' + idx + '" data-di="' + di + '" value="' + escapeHtml(d.qty) + '" min="0" step="any" placeholder="จำนวนที่สั่ง">' +
           '<input type="number" data-delivery-field="amount" data-idx="' + idx + '" data-di="' + di + '" value="' + escapeHtml(d.amount) + '" min="0" step="0.01" placeholder="ราคา (บาท)">' +
           '<input type="text" data-delivery-field="channel" data-idx="' + idx + '" data-di="' + di + '" value="' + escapeHtml(d.channel||"") + '" placeholder="ช่องทางการซื้อ เช่น ร้าน/เว็บ/ผู้จำหน่าย">' +
+          '<input type="text" data-delivery-field="buyer" data-idx="' + idx + '" data-di="' + di + '" value="' + escapeHtml(d.buyer||"") + '" placeholder="ผู้สั่งซื้อ (ชื่อ-นามสกุล)">' +
           '<select data-delivery-field="status" data-idx="' + idx + '" data-di="' + di + '">' + delStatusOpts + '</select>' +
           '<button class="rm-row" data-rm-delivery="' + idx + ':' + di + '" aria-label="ลบรอบสั่งซื้อนี้">×</button>' +
         '</div>';
@@ -1905,7 +1921,7 @@
 
       var deliverySection = isPurchasing
         ? '<div class="delivery-block">' +
-            '<div class="k" style="margin-bottom:6px;">ทยอยสั่งซื้อ / จัดส่ง (วันที่ · จำนวน · ราคา · ช่องทางการซื้อ · สถานะ ของแต่ละรอบ)</div>' +
+            '<div class="k" style="margin-bottom:6px;">ทยอยสั่งซื้อ / จัดส่ง (วันที่ · จำนวน · ราคา · ช่องทางการซื้อ · ผู้สั่งซื้อ · สถานะ ของแต่ละรอบ)</div>' +
             '<div class="delivery-rows">' + deliveryRowsHtml + '</div>' +
             '<button class="btn-sm" data-add-delivery="' + idx + '" style="margin-top:8px;">+ เพิ่มรอบสั่งซื้อ</button>' +
             '<div class="delivery-summary">รวมสั่งแล้ว ' + deliveredQty + (it.unit ? ' ' + escapeHtml(it.unit) : '') + ' จากที่ขอ ' + escapeHtml(it.qty) + (it.unit ? ' ' + escapeHtml(it.unit) : '') + ' &nbsp;•&nbsp; รวมเงิน ' + fmtMoney(deliveredAmt) + '</div>' +
@@ -1920,6 +1936,7 @@
                     '<span>' + (d.qty !== "" && d.qty != null ? escapeHtml(d.qty) + (it.unit ? ' ' + escapeHtml(it.unit) : '') : '-') + '</span>' +
                     '<span>' + (d.amount !== "" && d.amount != null ? fmtMoney(d.amount) : '-') + '</span>' +
                     '<span>' + (d.channel ? escapeHtml(d.channel) : '-') + '</span>' +
+                    '<span>' + (d.buyer ? escapeHtml(d.buyer) : '-') + '</span>' +
                     '<span class="badge-sm ' + dst.cls + '">' + dst.label + '</span>' +
                   '</div>';
                 }).join("") +
@@ -2076,7 +2093,7 @@
         var idx = Number(btn.getAttribute("data-add-delivery"));
         if(!state.detailDraftItems[idx]) return;
         if(!Array.isArray(state.detailDraftItems[idx].deliveries)) state.detailDraftItems[idx].deliveries = [];
-        state.detailDraftItems[idx].deliveries.push({ date: "", qty: "", amount: "", channel: "", status: "processing" });
+        state.detailDraftItems[idx].deliveries.push({ date: "", qty: "", amount: "", channel: "", buyer: "", status: "processing" });
         renderDetailBody(r);
       };
     });
@@ -2095,11 +2112,21 @@
     var saveActualsBtn = document.getElementById("saveActualsBtn");
     if(saveActualsBtn){
       saveActualsBtn.onclick = async function(){
+        var missingBuyer = false;
+        (state.detailDraftItems || []).forEach(function(draft){
+          (draft.deliveries || []).forEach(function(d){
+            if(!String(d.buyer || "").trim()) missingBuyer = true;
+          });
+        });
+        if(missingBuyer){
+          toast("กรุณาระบุผู้สั่งซื้อให้ครบทุกรอบสั่งซื้อ ก่อนบันทึก");
+          return;
+        }
         r.items = r.items.map(function(it, idx){
           var draft = state.detailDraftItems[idx];
           var deliveries = (draft && Array.isArray(draft.deliveries))
             ? draft.deliveries.map(function(d){
-                return { date: d.date || "", qty: (d.qty === "" || d.qty == null) ? "" : d.qty, amount: (d.amount === "" || d.amount == null) ? "" : d.amount, channel: d.channel || "", status: d.status || "processing" };
+                return { date: d.date || "", qty: (d.qty === "" || d.qty == null) ? "" : d.qty, amount: (d.amount === "" || d.amount == null) ? "" : d.amount, channel: d.channel || "", buyer: d.buyer || "", status: d.status || "processing" };
               })
             : (it.deliveries || []);
           var hasDel = deliveries.length > 0;
@@ -2298,7 +2325,7 @@
           "จำนวนเงินจริง (บาท)": (it.actualAmount !== "" && it.actualAmount != null) ? Number(it.actualAmount) : "",
           "รอบสั่งซื้อ/จัดส่ง": (it.deliveries||[]).map(function(d){
             var dst = STATUS[d.status] || STATUS.processing;
-            return fmtDate(d.date) + ": " + (d.qty || "-") + (it.unit ? " " + it.unit : "") + (d.amount !== "" && d.amount != null ? " (" + fmtMoney(d.amount) + ")" : "") + (d.channel ? " ซื้อจาก " + d.channel : "") + " [" + dst.label + "]";
+            return fmtDate(d.date) + ": " + (d.qty || "-") + (it.unit ? " " + it.unit : "") + (d.amount !== "" && d.amount != null ? " (" + fmtMoney(d.amount) + ")" : "") + (d.channel ? " ซื้อจาก " + d.channel : "") + (d.buyer ? " โดย " + d.buyer : "") + " [" + dst.label + "]";
           }).join(" ; "),
           "ผู้ขอซื้อ": r.requester || "",
           "ใช้ที่ไหน": r.location || "",
