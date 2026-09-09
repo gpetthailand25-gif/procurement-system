@@ -122,12 +122,15 @@
     border-top:4px solid var(--line-strong);box-shadow:0 1px 3px rgba(20,20,10,.04);}
   .stat .n{font-size:23px;font-weight:800;line-height:1.1;}
   .stat .l{font-size:11.5px;color:var(--ink-soft);margin-top:4px;font-weight:600;}
+  .stat .m{font-size:12px;margin-top:5px;font-weight:800;opacity:.85;}
   .stat.is-new{background:var(--new-soft);border-top-color:var(--new);}
   .stat.is-new .n{color:var(--new-dark);}
   .stat.is-wait{background:var(--wait-soft);border-top-color:var(--wait);}
   .stat.is-wait .n{color:var(--wait-dark);}
+  .stat.is-wait .m{color:var(--wait-dark);}
   .stat.is-ship{background:var(--ship-soft);border-top-color:var(--ship);}
   .stat.is-ship .n{color:var(--ship-dark);}
+  .stat.is-ship .m{color:var(--ship-dark);}
   .stat.is-ok{background:var(--ok-soft);border-top-color:var(--ok);}
   .stat.is-ok .n{color:var(--ok-dark);}
   .stat.is-cancel{background:var(--cancel-soft);border-top-color:var(--cancel);}
@@ -227,8 +230,9 @@
     display:grid;grid-template-columns:repeat(4,1fr);gap:12px 18px;
     margin-top:14px;padding-top:14px;border-top:1px solid var(--line);
   }
+  .card-grid > div{min-width:0;}
   .kv .k{font-size:11px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;font-weight:700;}
-  .kv .v{font-size:14px;color:var(--ink);font-weight:500;}
+  .kv .v{font-size:14px;color:var(--ink);font-weight:500;overflow-wrap:anywhere;word-break:break-word;}
   .kv .v.muted{color:var(--ink-soft);font-style:italic;font-weight:400;}
   .item-line-list{font-size:14px;line-height:1.8;}
   .item-line-list .row{display:flex;gap:6px;align-items:baseline;flex-wrap:wrap;}
@@ -798,6 +802,11 @@
       return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c];
     });
   }
+  function truncateText(s, maxLen){
+    s = String(s == null ? "" : s);
+    if(s.length <= maxLen) return s;
+    return s.slice(0, maxLen).replace(/\s+\S*$/, "") + "…";
+  }
   function toast(msg){
     var t = document.getElementById("toast");
     t.textContent = msg;
@@ -974,6 +983,15 @@
     });
     return sum;
   }
+  function computeStatusAmountTotal(status){
+    var sum = 0;
+    state.requests.forEach(function(r){
+      (r.items||[]).forEach(function(it){
+        if(it.status === status) sum += lineActualAmount(it);
+      });
+    });
+    return sum;
+  }
   // overall status for a PR, derived from the status of its individual line items:
   // if every item is cancelled, the whole PR shows as cancelled; otherwise show the
   // least-advanced status among the non-cancelled items (so the card reflects the
@@ -1038,11 +1056,13 @@
       (r.items||[]).forEach(function(it){ stats[it.status] = (stats[it.status]||0) + 1; });
     });
     var receivedTotal = computeReceivedActualTotal();
+    var processingAmount = computeStatusAmountTotal("processing");
+    var shippingAmount = computeStatusAmountTotal("shipping");
     document.getElementById("statsRow").innerHTML =
       '<div class="stat is-new"><div class="n">' + state.requests.length + '</div><div class="l">ใบขอซื้อทั้งหมด</div></div>' +
       '<div class="stat is-new"><div class="n">' + (stats.new||0) + '</div><div class="l">รายการที่ได้รับแล้ว</div></div>' +
-      '<div class="stat is-wait"><div class="n">' + (stats.processing||0) + '</div><div class="l">รายการที่กำลังดำเนินการ</div></div>' +
-      '<div class="stat is-ship"><div class="n">' + (stats.shipping||0) + '</div><div class="l">รายการที่กำลังจัดส่ง</div></div>' +
+      '<div class="stat is-wait"><div class="n">' + (stats.processing||0) + '</div><div class="l">รายการที่กำลังดำเนินการ</div><div class="m">' + fmtMoney(processingAmount) + '</div></div>' +
+      '<div class="stat is-ship"><div class="n">' + (stats.shipping||0) + '</div><div class="l">รายการที่กำลังจัดส่ง</div><div class="m">' + fmtMoney(shippingAmount) + '</div></div>' +
       '<div class="stat is-ok"><div class="n">' + (stats.done||0) + '</div><div class="l">รายการที่รับแล้ว</div></div>' +
       '<div class="stat is-cancel"><div class="n">' + (stats.cancelled||0) + '</div><div class="l">รายการที่ยกเลิก</div></div>' +
       '<div class="stat is-money"><div class="n">' + fmtMoney(receivedTotal) + '</div><div class="l">ยอดรับสินค้าจริงรวม</div></div>';
@@ -1151,7 +1171,7 @@
           '<div class="kv"><div class="k">ผู้รับผิดชอบ</div><div class="v">' + (r.owner ? escapeHtml(r.owner) : '<span class="muted">ไม่ระบุ</span>') + '</div></div>' +
           '<div class="kv"><div class="k">ผู้ขอซื้อ</div><div class="v">' + (r.requester ? escapeHtml(r.requester) : '<span class="muted">ไม่ระบุ</span>') + '</div></div>' +
           '<div class="kv"><div class="k">วันที่ต้องการใช้</div><div class="v">' + fmtDate(r.needDate) + '</div></div>' +
-          '<div class="kv"><div class="k">หมายเหตุ</div><div class="v">' + (r.note ? escapeHtml(r.note) : '<span class="muted">-</span>') + '</div></div>' +
+          '<div class="kv"><div class="k">หมายเหตุ</div><div class="v">' + (r.note ? escapeHtml(truncateText(r.note, 100)) : '<span class="muted">-</span>') + '</div></div>' +
           '<div class="kv"><div class="k">หลักฐานอนุมัติ</div><div class="thumbs">' + approvalThumbs + '</div></div>' +
           '<div class="kv"><div class="k">หลักฐานรับสินค้า</div><div class="thumbs">' + receiptThumbs + '</div></div>' +
         '</div>' +
@@ -1781,8 +1801,10 @@
       '.doc-title{font-size:15px;font-weight:700;text-align:center;color:#444;margin-bottom:18px;}' +
       'hr{border:none;border-top:2px solid #1a1d29;margin-bottom:18px;}' +
       '.meta-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px 18px;margin-bottom:16px;font-size:12.5px;}' +
+      '.meta-grid > div{min-width:0;}' +
       '.meta-grid .k{color:#666;font-size:10.5px;text-transform:uppercase;letter-spacing:.03em;}' +
-      '.meta-grid .v{font-weight:600;}' +
+      '.meta-grid .v{font-weight:600;overflow-wrap:anywhere;word-break:break-word;}' +
+      '.note-box{overflow-wrap:anywhere;word-break:break-word;}' +
       '.section-title{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;color:#0f7a8c;margin:18px 0 8px;border-bottom:1px solid #ccc;padding-bottom:4px;}' +
       'table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:6px;}' +
       'th{background:#f0f0ee;text-align:left;padding:6px 8px;border:1px solid #ccc;font-size:11px;}' +
