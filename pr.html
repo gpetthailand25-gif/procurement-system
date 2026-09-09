@@ -383,13 +383,17 @@
 
   /* two-column layout: create-PR form on the left, request list on the right */
   .requests-layout{display:grid;grid-template-columns:400px 1fr;gap:20px;align-items:start;}
-  .requests-left{position:sticky;top:20px;}
-  .requests-left .modal{max-width:none;width:100%;box-shadow:0 1px 4px rgba(20,20,10,.06);border:1px solid var(--line);}
-  .requests-left .modal-body{max-height:none;overflow:visible;}
+  .requests-left{position:sticky;top:20px;max-height:calc(100vh - 40px);display:flex;flex-direction:column;}
+  .requests-left .modal{max-width:none;width:100%;box-shadow:0 1px 4px rgba(20,20,10,.06);border:1px solid var(--line);display:flex;flex-direction:column;min-height:0;}
+  .requests-left .modal-body{max-height:none;flex:1 1 auto;min-height:0;overflow-y:auto;}
+  .requests-left .modal-foot{position:sticky;bottom:0;background:var(--panel);border-radius:0 0 6px 6px;flex-shrink:0;}
   .requests-right{min-width:0;}
   @media(max-width:1080px){
     .requests-layout{grid-template-columns:1fr;}
-    .requests-left{position:static;}
+    .requests-left{position:static;max-height:none;display:block;}
+    .requests-left .modal{display:block;}
+    .requests-left .modal-body{overflow-y:visible;}
+    .requests-left .modal-foot{position:static;}
   }
 
   .lightbox{
