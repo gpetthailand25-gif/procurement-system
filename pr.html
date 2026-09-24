@@ -556,6 +556,7 @@
       </div>
 
       <div class="cards" id="cardList"></div>
+      <div id="loadMoreWrap" style="text-align:center;margin:16px 0;"></div>
       <div id="emptyState" class="empty" style="display:none;">
         <div class="big">📋</div>
         <div style="font-weight:700;color:var(--ink-soft);margin-bottom:4px;" id="emptyTitle">ยังไม่มีใบขอซื้อ</div>
@@ -721,6 +722,8 @@
   }
   firebase.initializeApp(firebaseConfig);
   var db = firebase.firestore();
+  // เก็บแคชในเครื่อง: เปิดครั้งถัดไปจะเห็นข้อมูลทันที แล้วค่อยซิงค์ส่วนที่เปลี่ยน
+  db.enablePersistence({synchronizeTabs:true}).catch(function(e){ console.warn("persistence:", e.code); });
 
   var STATUS = {
     new:        { label: "ได้รับใบขอซื้อแล้ว",     cls: "st-new" },
@@ -738,6 +741,8 @@
 
   var state = {
     requests: [],
+    reqLimit: 30,
+    hasMore: false,
     registry: [],
     currentPage: "requests",
     registrySearch: "",
@@ -830,24 +835,53 @@
     return r;
   }
 
-  function startRealtimeSync(){
-    db.collection("requests").onSnapshot(function(snapshot){
+  var PAGE_SIZE = 30;
+  var unsubRequests = null;
+  var registryStarted = false;
+
+  function subscribeRequests(){
+    if(unsubRequests) unsubRequests();
+    unsubRequests = db.collection("requests").orderBy("createdAt","desc").limit(state.reqLimit).onSnapshot(function(snapshot){
       state.requests = snapshot.docs.map(function(d){ return normalizeRequest(d.data()); });
+      state.hasMore = snapshot.size >= state.reqLimit;
       render();
+      updateLoadMore();
       if(state.detailTargetId){
         var open = state.requests.find(function(x){ return x.id === state.detailTargetId; });
         if(open) refreshDetailIfOpen(open.id);
       }
+      // โหลดทะเบียนวัสดุ "หลังจาก" แสดงใบขอซื้อแล้ว เพื่อไม่แย่งแบนด์วิดท์กัน
+      if(!registryStarted){ registryStarted = true; setTimeout(subscribeRegistry, 300); }
     }, function(err){
       toast("เชื่อมต่อฐานข้อมูลไม่สำเร็จ: " + err.message);
     });
+  }
 
+  function subscribeRegistry(){
     db.collection("registry").onSnapshot(function(snapshot){
       state.registry = snapshot.docs.map(function(d){ return d.data(); });
       if(state.currentPage === "registry") renderRegistry();
     }, function(err){
       toast("เชื่อมต่อทะเบียนไม่สำเร็จ: " + err.message);
     });
+  }
+
+  function updateLoadMore(){
+    var w = document.getElementById("loadMoreWrap");
+    if(!w) return;
+    w.innerHTML = state.hasMore
+      ? '<button class="link-btn" id="loadMoreBtn">โหลดใบขอซื้อเก่าเพิ่ม (แสดงอยู่ ' + state.requests.length + ' ใบ)</button>'
+      : '';
+    var b = document.getElementById("loadMoreBtn");
+    if(b) b.onclick = function(){
+      b.disabled = true; b.textContent = "กำลังโหลด...";
+      state.reqLimit += PAGE_SIZE;
+      subscribeRequests();
+    };
+  }
+
+  function startRealtimeSync(){
+    subscribeRequests();
   }
 
   function saveRequestDoc(r){
@@ -1059,7 +1093,7 @@
     var processingAmount = computeStatusAmountTotal("processing");
     var shippingAmount = computeStatusAmountTotal("shipping");
     document.getElementById("statsRow").innerHTML =
-      '<div class="stat is-new"><div class="n">' + state.requests.length + '</div><div class="l">ใบขอซื้อทั้งหมด</div></div>' +
+      '<div class="stat is-new"><div class="n">' + state.requests.length + (state.hasMore ? '+' : '') + '</div><div class="l">ใบขอซื้อทั้งหมด</div></div>' +
       '<div class="stat is-new"><div class="n">' + (stats.new||0) + '</div><div class="l">รายการที่ได้รับแล้ว</div></div>' +
       '<div class="stat is-wait"><div class="n">' + (stats.processing||0) + '</div><div class="l">รายการที่กำลังดำเนินการ</div><div class="m">' + fmtMoney(processingAmount) + '</div></div>' +
       '<div class="stat is-ship"><div class="n">' + (stats.shipping||0) + '</div><div class="l">รายการที่กำลังจัดส่ง</div><div class="m">' + fmtMoney(shippingAmount) + '</div></div>' +
@@ -1128,12 +1162,12 @@
     if(!itemLines) itemLines = '<span class="muted">ไม่มีรายการ</span>';
 
     var approvalThumbs = (r.approvalImgs||[]).slice(0,4).map(function(src, i){
-      return '<img class="thumb" src="' + src + '" data-lightbox="1" alt="หลักฐานการอนุมัติ ' + (i+1) + '">';
+      return '<img class="thumb" loading="lazy" decoding="async" src="' + src + '" data-lightbox="1" alt="หลักฐานการอนุมัติ ' + (i+1) + '">';
     }).join("");
     if(!approvalThumbs) approvalThumbs = '<div class="thumb-empty">—</div>';
 
     var receiptThumbs = (r.receiptImgs||[]).slice(0,4).map(function(src, i){
-      return '<img class="thumb" src="' + src + '" data-lightbox="1" alt="หลักฐานการรับสินค้า ' + (i+1) + '">';
+      return '<img class="thumb" loading="lazy" decoding="async" src="' + src + '" data-lightbox="1" alt="หลักฐานการรับสินค้า ' + (i+1) + '">';
     }).join("");
     if(!receiptThumbs) receiptThumbs = '<div class="thumb-empty">—</div>';
 
@@ -1913,7 +1947,7 @@
 
     var itemsCards = state.detailDraftItems.map(function(it, idx){
       var photoThumbs = (it.photos||[]).map(function(src, pi){
-        return '<img class="thumb" src="' + src + '" data-lightbox="1" alt="รูปอ้างอิงสินค้า ' + (pi+1) + '">';
+        return '<img class="thumb" loading="lazy" decoding="async" src="' + src + '" data-lightbox="1" alt="รูปอ้างอิงสินค้า ' + (pi+1) + '">';
       }).join("") || '<span class="muted" style="font-size:12px;">ไม่มีรูปอ้างอิง</span>';
 
       var deliveredQty = deliveredQtySum(it);
@@ -2018,10 +2052,10 @@
       '</div>';
 
     var approvalThumbs = (r.approvalImgs||[]).map(function(src,i){
-      return '<img class="thumb" src="' + src + '" data-lightbox="1" alt="หลักฐานการอนุมัติ ' + (i+1) + '" style="width:48px;height:48px;">';
+      return '<img class="thumb" loading="lazy" decoding="async" src="' + src + '" data-lightbox="1" alt="หลักฐานการอนุมัติ ' + (i+1) + '" style="width:48px;height:48px;">';
     }).join("") || '<span class="muted" style="font-size:13px;">ไม่มีไฟล์แนบ</span>';
     var receiptThumbs = (r.receiptImgs||[]).map(function(src,i){
-      return '<img class="thumb" src="' + src + '" data-lightbox="1" alt="หลักฐานการรับสินค้า ' + (i+1) + '" style="width:48px;height:48px;">';
+      return '<img class="thumb" loading="lazy" decoding="async" src="' + src + '" data-lightbox="1" alt="หลักฐานการรับสินค้า ' + (i+1) + '" style="width:48px;height:48px;">';
     }).join("") || '<span class="muted" style="font-size:13px;">ไม่มีไฟล์แนบ</span>';
 
     var evidenceSection =
